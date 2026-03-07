@@ -11,11 +11,18 @@ class DevSettings(BaseSettings):
     LHOST:str
     PHOS:str
     DEBUG:bool
-    SCRAPE_API_KEY:str
+    
     
     # sites url
     KONGA_TARGET_URL:str
     JIJI_TARGER_URL:str
     JUMIA_TARGET_URL:str
+    
+    # scraper data
+    SCRAPE_API_KEY:str
+    MAX_RETIRES:int
+    SCRAPE_API_BASE:str
+    REQUEST_TIME_OUT:int
+    PAGE_TO_SCRAPE:int
 
 settings = DevSettings()

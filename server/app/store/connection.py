@@ -29,11 +29,15 @@ class DbSessionManager:
 
     async def start(self):
         if self._engin is  None:
-            logger.fatal("error occured while stating session engin")
+            logger.debug("error occured while stating session engin")
             return
+        try:
+            async with self._engin.begin() as conn:
+                await conn.run_sync(BASE.metadata.create_all)
+            logger.info(f"db connection initialized")
+        except Exception as e:
+            logger.fatal(f"error occured while starting engine {e}")
         
-        async with self._engin.begin() as conn:
-            await conn.run_sync(BASE.metadata.create_all)
         
     
  

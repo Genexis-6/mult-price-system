@@ -2,6 +2,7 @@ from fastapi import FastAPI
 import contextlib
 from app.store import db_session_manager
 from app.utils.logger import get_logger
+from app.routes.test import test
 
 logger = get_logger("app")
 
@@ -17,3 +18,6 @@ async def lifespan(app):
 
 
 app = FastAPI(title="Mula Search Api", lifespan=lifespan)
+
+
+app.include_router(test)
