@@ -6,7 +6,7 @@ from typing_extensions import AsyncIterable
 from app.config.dev_config import settings
 from app.utils.logger import get_logger
 
-BASE = declarative_base()
+Base = declarative_base()
 logger = get_logger("db-connection")
 
 class DbSessionManager:
@@ -33,7 +33,7 @@ class DbSessionManager:
             return
         try:
             async with self._engin.begin() as conn:
-                await conn.run_sync(BASE.metadata.create_all)
+                await conn.run_sync(Base.metadata.create_all)
             logger.info(f"db connection initialized")
         except Exception as e:
             logger.fatal(f"error occured while starting engine {e}")
