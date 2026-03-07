@@ -4,12 +4,20 @@ from sqlalchemy.orm import declarative_base
 import contextlib
 from typing_extensions import AsyncIterable
 from app.config.dev_config import settings
+from app.utils.logger import get_logger
 
 BASE = declarative_base()
+logger = get_logger("db-connection")
 
 class DbSessionManager:
     def __init__(self, host_url: str):
-        self._engin = create_async_engine(url=host_url)
+        self._engin = create_async_engine(
+            url=host_url,
+            pool_size=10,          # 3 ETLs run in parallel — give enough connections
+            max_overflow=5,
+            pool_pre_ping=True,    # drop stale connections automatically
+            echo=False,)
+        
         self._session_maker = async_sessionmaker(
             bind=self._engin,
             autoflush=True, 
@@ -21,7 +29,7 @@ class DbSessionManager:
 
     async def start(self):
         if self._engin is  None:
-            print("error occured while stating session engin")
+            logger.fatal("error occured while stating session engin")
             return
         
         async with self._engin.begin() as conn:
@@ -35,21 +43,23 @@ class DbSessionManager:
         self._engin.dispose()
         self._engin = None
         self._session_maker = None
-        print("db session is closed")
+        logger.debug("db session is closed")
         
     
     
     @contextlib.asynccontextmanager
     async def session(self)-> AsyncIterable[AsyncSession]:
         if self._session_maker is  None:
-            print("no session engin was provided")
+            logger.fatal("no session engin was provided")
             return
         
         conn = self._session_maker()
         try:
             yield conn
+            await conn.commit()
+            
         except Exception as e:
-            print(f"error occured in session due to: {e}")
+            logger.debug(f"error occured in session due to: {e}")
             await conn.rollback()
             raise
         finally:

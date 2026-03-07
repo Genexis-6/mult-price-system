@@ -1,4 +1,4 @@
-from .dependency import db_session_manager, AsyncSession
+from .connection import db_session_manager, AsyncSession
 from fastapi import Depends
 from typing import Annotated
 

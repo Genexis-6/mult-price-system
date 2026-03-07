@@ -11,8 +11,11 @@ class DevSettings(BaseSettings):
     LHOST:str
     PHOS:str
     DEBUG:bool
+    SCRAPE_API_KEY:str
     
-    
-    
+    # sites url
+    KONGA_TARGET_URL:str
+    JIJI_TARGER_URL:str
+    JUMIA_TARGET_URL:str
 
 settings = DevSettings()
