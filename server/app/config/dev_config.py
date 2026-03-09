@@ -24,5 +24,9 @@ class DevSettings(BaseSettings):
     SCRAPE_API_BASE:str
     REQUEST_TIME_OUT:int
     PAGE_TO_SCRAPE:int
+    SEMAPHORE_LIMIT:int
+    BATCH_SIZE:int
+    BATCH_DELAY:int
+    
 
 settings = DevSettings()

@@ -1,5 +1,6 @@
-from fastapi import APIRouter
-from app.pipelines.etl.scraper import scrape_url
+from fastapi import APIRouter, BackgroundTasks
+from app.pipelines import run_full_pipeline
+
 
 
 
@@ -15,7 +16,6 @@ test = APIRouter(
 
 
 @test.get("/")
-async def testing_scraper():
-   
-    
-    return ""
+async def testing_scraper(backgoundTask: BackgroundTasks):
+    backgoundTask.add_task(run_full_pipeline, "tecno phone", 1)  
+    return  {"message": "running pipeline in background"}

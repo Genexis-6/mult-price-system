@@ -5,6 +5,11 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base
 from datetime import datetime
 
+from sqlalchemy.dialects.postgresql import ARRAY
+
+
+
+
 class ProductMixin:
     """
     Columns shared across all 3 platform tables.
@@ -19,22 +24,13 @@ class ProductMixin:
     currency         = Column(String(10), default="NGN")
     rating           = Column(Float)                                   
     review_count     = Column(Integer)
-    product_url      = Column(Text)
+    product_url = Column(String, unique=True, nullable=True)
     image_url        = Column(Text)
 
    
-    reviews_raw      = Column(Text) 
+    reviews_raw = Column(ARRAY(Text), nullable=True)
 
     sentiment_score  = Column(Float) 
-
-    
-    seller_name          = Column(String(255))
-    seller_tenure_months = Column(Integer)   # how long selling on platform
-    seller_shipping_days = Column(Float)     # avg shipping speed in days
-    seller_total_sales   = Column(Integer)   # number of successful sales
-    seller_quality_score = Column(Float)     # platform quality badge / score
-    seller_rating        = Column(Float)     # seller-specific rating 0-5
-    seller_followers     = Column(Integer)
 
   
     scraped_at       = Column(DateTime, default=datetime.utcnow)

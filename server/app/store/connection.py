@@ -13,9 +13,6 @@ class DbSessionManager:
     def __init__(self, host_url: str):
         self._engin = create_async_engine(
             url=host_url,
-            pool_size=10,          # 3 ETLs run in parallel — give enough connections
-            max_overflow=5,
-            pool_pre_ping=True,    # drop stale connections automatically
             echo=False,)
         
         self._session_maker = async_sessionmaker(

@@ -1,0 +1,1 @@
+from .jumia_queries import JumiaQueries
