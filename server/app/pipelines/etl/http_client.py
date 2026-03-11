@@ -15,18 +15,38 @@ BATCH_DELAY = settings.BATCH_DELAY         # seconds to pause between batches
 
 sem = asyncio.Semaphore(SEMAPHORE_LIMIT)
 
+def getHeaders(BaseUrl):
+    return {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/123.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Referer": BaseUrl,
+}
+
+def getApiHeader(baseUrl):
+    return {
+    **getHeaders(baseUrl),
+    "Accept": "application/json, text/plain, */*",
+}
+
+
 async def fetch(session: aiohttp.ClientSession, url: str, 
+                as_json: bool = False,
                 payload: Optional[dict] = None,
                 method:Optional[Literal["GET", "POST"]] = "GET",
                 headers: Optional[dict] = None,
+                baseUrl: Optional[str] = ""
                 ) -> Optional[Any]:
     if not isinstance(url, str):
         print(f"[invalid url] {url}")
         return None
     
-    headers = headers or {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
-    }
+    
+    headers = getApiHeader(baseUrl) if as_json else getHeaders(baseUrl)
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
@@ -41,7 +61,10 @@ async def fetch(session: aiohttp.ClientSession, url: str,
                             continue
 
                         if resp.status == 200:
+                            if as_json:
+                                return await resp.json(content_type=None)
                             return await resp.text()
+
 
                         print(f"[{resp.status}] attempt {attempt} for {url}")
                 if method == "POST":
@@ -71,3 +94,4 @@ async def fetch(session: aiohttp.ClientSession, url: str,
 
     print(f"[failed]  all {MAX_RETRIES} attempts exhausted for {url}")
     return None
+

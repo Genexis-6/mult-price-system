@@ -1,10 +1,10 @@
 from ..connection import AsyncSession
-from ..models import JumiaProduct
+from ..models import JijiProduct
 from .base_product_queries import BaseProductQueries
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-class JumiaQueries(BaseProductQueries):
+class JijiQueries(BaseProductQueries):
     def __init__(self, db: AsyncSession):
-        super().__init__(db, JumiaProduct)
+        super().__init__(db, JijiProduct)

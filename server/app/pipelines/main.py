@@ -1,6 +1,7 @@
 import asyncio
-from .etl.jumia import JumiaETL
-from .etl.konga import KongaETL
+# from .etl.jumia import JumiaETL
+# from .etl.konga import KongaETL
+from .etl.jiji import JijiETL
 from app.utils.logger import get_logger
 
 logger = get_logger("main")
@@ -8,8 +9,8 @@ logger = get_logger("main")
 
 async def run_etl_layer(query: str, pages: int = 3) -> dict:
     etls = {
-        "konga": KongaETL(),
-        "jiji":  JumiaETL(),
+        # "konga": KongaETL(),
+        "jiji":  JijiETL(),
         
     }
 

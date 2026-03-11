@@ -17,5 +17,5 @@ test = APIRouter(
 
 @test.get("/")
 async def testing_scraper(backgoundTask: BackgroundTasks):
-    backgoundTask.add_task(run_full_pipeline, "iphone 17", 1)  
+    backgoundTask.add_task(run_full_pipeline, "samsung s24", 1)  
     return  {"message": "running pipeline in background"}
