@@ -1,5 +1,6 @@
 import asyncio
 from .etl.jumia import JumiaETL
+from .etl.konga import KongaETL
 from app.utils.logger import get_logger
 
 logger = get_logger("main")
@@ -7,9 +8,9 @@ logger = get_logger("main")
 
 async def run_etl_layer(query: str, pages: int = 3) -> dict:
     etls = {
-        "jumia": JumiaETL(),
-        # "jiji":  JijiETL(),
-        # "konga": KongaETL(),
+        "konga": KongaETL(),
+        "jiji":  JumiaETL(),
+        
     }
 
     # Run all ETLs concurrently in the same event loop

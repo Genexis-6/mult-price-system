@@ -13,10 +13,7 @@ class DevSettings(BaseSettings):
     DEBUG:bool
     
     
-    # sites url
-    KONGA_TARGET_URL:str
-    JIJI_TARGER_URL:str
-    JUMIA_TARGET_URL:str
+    
     
     # scraper data
     SCRAPE_API_KEY:str
