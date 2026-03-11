@@ -13,7 +13,7 @@ SEMAPHORE_LIMIT = settings.SEMAPHORE_LIMIT        # max concurrent requests in-f
 BATCH_SIZE = settings.BATCH_SIZE         # products processed per batch
 BATCH_DELAY = settings.BATCH_DELAY         # seconds to pause between batches
 
-
+BASE_URL     = "https://www.jumia.com.ng"
 
 sem = asyncio.Semaphore(SEMAPHORE_LIMIT)
 
@@ -22,11 +22,11 @@ sem = asyncio.Semaphore(SEMAPHORE_LIMIT)
 def _href(href: Optional[str]) -> Optional[str]:
     if href is None:
         return None
-    return f"https://www.jumia.com.ng{href}" if href.startswith("/") else href
+    return f"{BASE_URL}{href}" if href.startswith("/") else href
 
 
 def _build_catalog_url(query: str, page: int = 1) -> str:
-    return f"https://www.jumia.com.ng/catalog/?q={query}"
+    return f"{BASE_URL}/catalog/?q={query}"
 
 
 
@@ -89,7 +89,7 @@ def _extract_reviews(html: str) -> List[str]:
 async def _process_product(session: aiohttp.ClientSession, product: dict) -> dict:
     """Fetch product page + reviews """
     url  = product["product_url"]
-    html = await fetch(session=session, url=url)
+    html = await fetch(session=session, url=url, baseUrl=BASE_URL)
 
     if html is None:
         print(f"[skip] could not fetch {url}")
@@ -100,7 +100,7 @@ async def _process_product(session: aiohttp.ClientSession, product: dict) -> dic
   
     if isinstance(review_url, str) and review_url.startswith("http"):
 
-        review_html = await fetch(session=session,url= review_url)
+        review_html = await fetch(session=session,url= review_url, baseUrl=BASE_URL)
 
         if review_html:
             product["reviews_raw"] = await asyncio.to_thread(
@@ -124,7 +124,7 @@ async def _scrape_jumia_async(query: str, pages: int) -> List[dict]:
         # Fetch catalog pages — small page counts are fine to do together
         print(f"[catalog] fetching {pages} page(s) for '{query}' …")
         catalog_htmls = await asyncio.gather(
-            *[fetch(session=session,url= _build_catalog_url(query, p)) for p in range(1, pages + 1)]
+            *[fetch(session=session,url= _build_catalog_url(query, p), baseUrl=BASE_URL) for p in range(1, pages + 1)]
         )
         
         

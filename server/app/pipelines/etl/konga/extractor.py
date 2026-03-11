@@ -8,7 +8,7 @@ import aiohttp
 import requests
 from app.config.dev_config import settings
 from app.utils.logger import get_logger
-from ..http_client import fetch
+from ..http_client import fetch, getHeaders
 
 
 
@@ -19,18 +19,7 @@ IMAGE_URL="https://www-konga-com-res.cloudinary.com/image/upload/f_auto,fl_lossy
 
 PAGE_SIZE    = 40                                
 DELAY        = (0.5, 1.5)                        
-
-HEADERS = {
-    "Content-Type":    "application/json",
-    "Accept":          "application/json",
-    "Origin":          "https://www.konga.com",
-    "Referer":         "https://www.konga.com/",
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/122.0.0.0 Safari/537.36"
-    ),
-}
+BASE_URL="https://www.konga.com"
 
 
 
@@ -81,7 +70,7 @@ def fetch_page(session: requests.Session, query: str, page: int, limit: int, log
     gql = SEARCH_QUERY.replace("{query}", query).replace("{page}", str(page)).replace("{limit}", str(limit))
     payload = {"query": gql}
     try:
-        resp = session.post(GRAPHQL_URL, json=payload, headers=HEADERS, timeout=settings.REQUEST_TIME_OUT)
+        resp = session.post(GRAPHQL_URL, json=payload, headers=getHeaders(BASE_URL), timeout=settings.REQUEST_TIME_OUT)
         resp.raise_for_status()
         data = resp.json()
         if "errors" in data:
@@ -178,7 +167,7 @@ async def extract_konga(query: str, pages: int, limit: int = 40, output: str = N
 
             log.info(f"→ Fetching page {page}")
 
-            data = await fetch(session=session, method="POST", url=GRAPHQL_URL, payload=payload, headers=HEADERS,)
+            data = await fetch(session=session, method="POST", url=GRAPHQL_URL, payload=payload, baseUrl=BASE_URL)
             
 
             if not data:
