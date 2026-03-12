@@ -4,6 +4,7 @@ from typing import Any, Optional, Literal
 
 import aiohttp
 from app.config.dev_config import settings
+from app.utils.logger import get_logger
 
 REQUEST_TIME_OUT = aiohttp.ClientTimeout(total=60)
 MAX_RETRIES  = settings.MAX_RETIRES
@@ -12,7 +13,7 @@ BATCH_SIZE = settings.BATCH_SIZE         # products processed per batch
 BATCH_DELAY = settings.BATCH_DELAY         # seconds to pause between batches
 
 
-
+logger = get_logger(__name__)
 sem = asyncio.Semaphore(SEMAPHORE_LIMIT)
 
 def getHeaders(BaseUrl):
@@ -42,7 +43,7 @@ async def fetch(session: aiohttp.ClientSession, url: str,
                 baseUrl: Optional[str] = ""
                 ) -> Optional[Any]:
     if not isinstance(url, str):
-        print(f"[invalid url] {url}")
+        logger.error(f"[invalid url] {url}")
         return None
     
     
@@ -56,7 +57,7 @@ async def fetch(session: aiohttp.ClientSession, url: str,
                         if resp.status == 429:
                             # Back off longer than normal — we're hitting the wall
                             wait = (2 ** attempt) * 10
-                            print(f"[429] rate-limited — waiting {wait}s (attempt {attempt})")
+                            logger.debug(f"[429] rate-limited — waiting {wait}s (attempt {attempt})")
                             await asyncio.sleep(wait)
                             continue
 
@@ -66,32 +67,32 @@ async def fetch(session: aiohttp.ClientSession, url: str,
                             return await resp.text()
 
 
-                        print(f"[{resp.status}] attempt {attempt} for {url}")
+                        logger.info(f"[{resp.status}] attempt {attempt} for {url}")
                 if method == "POST":
                     async with session.post(url=url, headers=headers, json=payload, timeout=REQUEST_TIME_OUT) as resp:
                         if resp.status == 429:
                             # Back off longer than normal — we're hitting the wall
                             wait = (2 ** attempt) * 10
-                            print(f"[429] rate-limited — waiting {wait}s (attempt {attempt})")
+                            logger.debug(f"[429] rate-limited — waiting {wait}s (attempt {attempt})")
                             await asyncio.sleep(wait)
                             continue
                         resp.raise_for_status()
                         data = await resp.json()
 
                         if "errors" in data:
-                            print(f"[Error] {data['errors']}")
+                            logger.error(f"[Error] {data['errors']}")
                             return None
                         
                         return data
 
         except asyncio.TimeoutError:
-            print(f"[timeout] attempt {attempt} for {url}")
+            logger.error(f"[timeout] attempt {attempt} for {url}")
         except aiohttp.ClientError as e:
-            print(f"[error]   attempt {attempt} for {url}: {e}")
+            logger.error(f"[error]   attempt {attempt} for {url}: {e}")
 
         if attempt < MAX_RETRIES:
             await asyncio.sleep((2 ** attempt) + random.uniform(0, 1))
 
-    print(f"[failed]  all {MAX_RETRIES} attempts exhausted for {url}")
+    logger.error(f"[failed]  all {MAX_RETRIES} attempts exhausted for {url}")
     return None
 

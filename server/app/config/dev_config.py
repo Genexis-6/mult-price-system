@@ -25,5 +25,8 @@ class DevSettings(BaseSettings):
     BATCH_SIZE:int
     BATCH_DELAY:int
     
+    # ollama ai
+    OLLAMA_AI:str
+    
 
 settings = DevSettings()
