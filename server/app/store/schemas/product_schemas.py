@@ -30,3 +30,12 @@ class ProductSchemas(BaseModel):
         from_attributes=True,
     )
 
+
+
+
+class ProductSentimentSchemas(BaseModel):
+    id: int
+    reviews: List[str]
+
+    sentiments: List[str] = []
+    score: float = 0.0

@@ -2,7 +2,7 @@ from typing import List, Type
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..schemas import ProductSchemas
+from ..schemas import ProductSchemas, ProductSentimentSchemas
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -76,3 +76,35 @@ class BaseProductQueries:
             await self.session.rollback()
             logger.error(f"Error saving bulk data: {e}")
             raise
+    
+    async def get_products(self) -> List[ProductSentimentSchemas]:
+        res = await self.session.execute(select(self.model))
+        output = res.scalars().all()
+        if output is None:
+            return []
+        
+        
+        
+        return [ProductSentimentSchemas(
+            id=pd.id,
+            reviews=pd.reviews_raw
+            ) for pd in output if pd.reviews_raw and pd.sentiment_score is None]
+    
+    
+    async def get_product_reviews(self, id: int)-> List[str] | None:
+        res = await self.session.execute(select(self.model).where(self.model.id == id))
+        if res is None:
+            return None
+        return res.scalar_one_or_none()
+    
+    async def add_sentiment_score(self, prd: ProductSentimentSchemas):
+        res = await self.session.execute(select(self.model).where(self.model.id == prd.id))
+        output = res.scalar_one_or_none()
+        
+        if output is None:
+            return None
+        
+        output.sentiment_score = prd.score
+        
+        await self.session.commit()
+        

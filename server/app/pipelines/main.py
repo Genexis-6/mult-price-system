@@ -3,6 +3,7 @@ from .etl.jumia import JumiaETL
 from .etl.konga import KongaETL
 from .etl.jiji import JijiETL
 from app.utils.logger import get_logger
+from .sentiment_layer.sentiment_analizer import SentimentAnalyzer
 
 logger = get_logger("main")
 
@@ -41,6 +42,9 @@ async def run_full_pipeline(query: str, pages: int = 1) -> None:
     logger.info(f"ETL complete: {etl_results}")
 
     logger.info("Layer 2: Sentiment analysis — coming next")
+    
+    sentiment = SentimentAnalyzer()
+    await sentiment.run_sentiment()
     logger.info("Layer 3: Data fusion — coming next")
     logger.info("Layer 4: ML recommendation — coming next")
 

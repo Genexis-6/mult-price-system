@@ -1,1 +1,2 @@
 from .product_schemas import ProductSchemas
+from .product_schemas import ProductSentimentSchemas

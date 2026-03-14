@@ -25,6 +25,9 @@ class DevSettings(BaseSettings):
     BATCH_SIZE:int
     BATCH_DELAY:int
     
+    TOKENIZERS_PARALLELISM:bool
+    HF_HUB_OFFLINE:str
+    
     # ollama ai
     OLLAMA_AI:str
     
