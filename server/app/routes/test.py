@@ -18,6 +18,7 @@ test = APIRouter(
 
 @test.get("/")
 async def testing_scraper(backgoundTask: BackgroundTasks):
-    backgoundTask.add_task(run_full_pipeline, "oppo reno 5", 1)  
-
+    backgoundTask.add_task(run_full_pipeline, "nike airforce 1", 1) 
+    # res = requests.post(settings.OLLAMA_AI, json={"model":"phi3", "prompt":"hello"})
+    # print(res.text)
     return  {"message": "hehehe"}

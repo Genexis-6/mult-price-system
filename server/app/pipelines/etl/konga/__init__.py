@@ -11,7 +11,7 @@ class KongaETL(BaseETL):
         super().__init__("konga")
     
     async def extract(self, query: str, pages: int = 3) -> List[Dict[str, Any]]:
-        return await extract_konga(query=query, pages=pages,log=self.logger)
+        return await extract_konga(query=query, pages=pages)
 
     def transform(self, raw_data: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
         return transform_konga(raw_data, query)

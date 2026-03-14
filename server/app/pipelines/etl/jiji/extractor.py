@@ -188,7 +188,7 @@ async def extract_jiji(
 
      
         search_urls = [build_search_url(keyword, p) for p in range(1, max_pages + 1)]
-        print(f"\n[*] Fetching {len(search_urls)} search page(s)...")
+        print(f"\n[*]Jiji etl Fetching {len(search_urls)} search page(s)...")
 
         search_htmls = await asyncio.gather(
             *[fetch(session, u, baseUrl=BASE_URL) for u in search_urls]
@@ -219,23 +219,18 @@ async def extract_jiji(
             batch     = all_products[batch_start: batch_start + BATCH_SIZE]
             batch_num = batch_start // BATCH_SIZE + 1
 
-            print(f"\n  Batch {batch_num}/{total_batches} "
+            print(f"\n Jiji Batch {batch_num}/{total_batches} "
                   f"(products {batch_start + 1}–{batch_start + len(batch)})")
 
             enriched = await asyncio.gather(
                 *[enrich_product(session, p) for p in batch]
             )
 
-            for i, p in enumerate(enriched):
-                rc = p.get("review_count") or 0
-                rv = len(p.get("reviews_raw") or [])
-                print(f"    [{batch_start + i + 1:02d}] {p['product_name'][:55]}"
-                      f"  | reviews_raw: {rv}/{rc}")
 
             all_products[batch_start: batch_start + BATCH_SIZE] = list(enriched)
 
             if batch_start + BATCH_SIZE < len(all_products):
-                print(f"  [~] Pausing {BATCH_DELAY}s before next batch...")
+                print(f"  Jiji Batch Pausing {BATCH_DELAY}s before next batch...")
                 await asyncio.sleep(BATCH_DELAY)
 
     return all_products

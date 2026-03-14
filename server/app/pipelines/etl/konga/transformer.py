@@ -25,7 +25,7 @@ def transform_konga(raw_data: List[Dict[str, Any]], query: str) -> List[Dict[str
                 "review_count": _parse_review_count(raw.get("review_count")),
                 "product_url":  raw.get("product_url"),
                 "image_url":    raw.get("image_url"),
-                "reviews_raw":  raw.get("reviews"),
+                "reviews_raw":  raw.get("reviews_raw"),
 
                 # Sentiment filled later by Layer 2
                 "sentiment_score": None,

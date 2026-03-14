@@ -139,13 +139,13 @@ async def _scrape_jumia_async(query: str, pages: int) -> List[dict]:
                         if p.get("product_url")]
         
     
-        print(f"[catalog] found {len(raw_products)} products — "
+        print(f"Jumia etl [catalog] found {len(raw_products)} products — "
               f"processing in batches of {BATCH_SIZE} …")
 
         #Process products in controlled batches so we never flood the API
         results = []
         for batch_num, batch in enumerate(_chunks(raw_products, BATCH_SIZE), start=1):
-            print(f"[batch {batch_num}] processing {len(batch)} products …")
+            print(f"[Jumia batch {batch_num}] processing {len(batch)} products …")
             batch_results = await asyncio.gather(
                 *[_process_product(session, prod) for prod in batch]
             )
@@ -154,7 +154,7 @@ async def _scrape_jumia_async(query: str, pages: int) -> List[dict]:
            
             remaining = len(raw_products) - len(results)
             if remaining > 0:
-                print(f"[batch {batch_num}] done — waiting {BATCH_DELAY}s before next batch "
+                print(f"[Jumia batch {batch_num}] done — waiting {BATCH_DELAY}s before next batch "
                       f"({remaining} products left) …")
                 await asyncio.sleep(BATCH_DELAY)
 
