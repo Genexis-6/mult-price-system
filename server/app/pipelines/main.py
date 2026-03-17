@@ -3,7 +3,8 @@ from .etl.jumia import JumiaETL
 from .etl.konga import KongaETL
 from .etl.jiji import JijiETL
 from app.utils.logger import get_logger
-from .sentiment_layer.sentiment_analizer import SentimentAnalyzer
+from .sentiment.sentiment_analizer import run_sentiment
+from .fusion.main import run_fusion
 
 logger = get_logger("main")
 
@@ -35,7 +36,7 @@ async def run_etl_layer(query: str, pages: int = 3) -> dict:
     return results
 
 
-async def run_full_pipeline(query: str, pages: int = 1) -> None:
+async def run_full_pipeline(query: str, pages: int = 2) -> None:
     logger.info(f"=== Pipeline START | query='{query}' ===")
 
     etl_results = await run_etl_layer(query, pages)
@@ -43,9 +44,10 @@ async def run_full_pipeline(query: str, pages: int = 1) -> None:
 
     logger.info("Layer 2: Sentiment analysis — coming next")
     
-    sentiment = SentimentAnalyzer()
-    await sentiment.run_sentiment()
+    await run_sentiment()
     logger.info("Layer 3: Data fusion — coming next")
+    
+    await run_fusion(query)
     logger.info("Layer 4: ML recommendation — coming next")
 
     logger.info(f"=== Pipeline END | query='{query}' ===")

@@ -3,6 +3,7 @@
 import re
 from typing import List, Dict, Any
 from datetime import datetime
+from ..filter_product import filter_products
 
 
 def transform_konga(raw_data: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
@@ -42,7 +43,7 @@ def transform_konga(raw_data: List[Dict[str, Any]], query: str) -> List[Dict[str
         except Exception:
             continue
 
-    return products
+    return filter_products(products, query, "[konga]")
 
 
 

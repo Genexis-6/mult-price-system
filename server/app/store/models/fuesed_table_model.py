@@ -23,14 +23,7 @@ class FusedProduct(Base):
     product_url      = Column(Text)
     image_url        = Column(Text)
 
-    # seller (imputed NULLs from jiji filled here)
-    seller_name          = Column(String(255))
-    seller_tenure_months = Column(Integer)
-    seller_shipping_days = Column(Float)
-    seller_total_sales   = Column(Integer)
-    seller_quality_score = Column(Float)
-    seller_rating        = Column(Float)
-    seller_followers     = Column(Integer)
+
 
     # ML output (filled by Layer 4)
     recommendation_score = Column(Float)

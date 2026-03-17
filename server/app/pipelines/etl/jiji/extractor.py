@@ -183,6 +183,7 @@ async def extract_jiji(
    
 
     all_products: list = []
+    max_pages = max_pages * 2
 
     async with aiohttp.ClientSession() as session:
 
@@ -219,7 +220,7 @@ async def extract_jiji(
             batch     = all_products[batch_start: batch_start + BATCH_SIZE]
             batch_num = batch_start // BATCH_SIZE + 1
 
-            print(f"\n Jiji Batch {batch_num}/{total_batches} "
+            print(f"\n [Jiji Batch {batch_num}] "
                   f"(products {batch_start + 1}–{batch_start + len(batch)})")
 
             enriched = await asyncio.gather(

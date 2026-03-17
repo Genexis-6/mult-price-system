@@ -9,6 +9,7 @@ from typing import List, Optional
 
 class ProductSchemas(BaseModel):
     # Basic product information
+    id:Optional[int] = None
     query: str
     product_name: Optional[str] = None
     category: Optional[str] = None
@@ -39,3 +40,21 @@ class ProductSentimentSchemas(BaseModel):
 
     sentiments: List[str] = []
     score: float = 0.0
+    
+    
+    
+
+
+class FusedProductBaseSchemas(BaseModel):
+    query: str
+    source_platform: Optional[str] = None
+    product_name: Optional[str] = None
+    category: Optional[str] = None
+    price: Optional[float] = None
+    currency: str = "NGN"
+    rating: Optional[float] = None
+    review_count: Optional[int] = None
+    sentiment_score: Optional[float] = None
+    product_url: Optional[str] = None
+    image_url: Optional[str] = None
+   
