@@ -8,9 +8,9 @@ Layer 3 entry point — async version.
 
 import pandas as pd
 from app.store import db_session_manager, FusedProductBaseSchemas, DataFusionQueries
-from ..fusion.merger       import merge_platforms
+from ..fusion.merger import merge_platforms
 from ..fusion.deduplicator import assign_duplicate_groups
-from ..fusion.normalizer   import normalize
+from ..fusion.normalizer import normalize
 from app.utils.logger        import get_logger
 
 logger = get_logger(__name__)
@@ -46,22 +46,31 @@ async def _save_fused(df: pd.DataFrame, query: str) -> int:
     if df.empty:
         return 0
 
-    rows = [
-        FusedProductBaseSchemas(
-            query           = query,
-            source_platform = row.get("source_platform"),
-            product_name    = row.get("product_name"),
-            category        = row.get("category"),
-            price           = row.get("price"),
-            currency        = row.get("currency", "NGN"),
-            rating          = row.get("rating"),
-            review_count    = _safe_int(row.get("review_count")),
-            sentiment_score = row.get("sentiment_score"),
-            product_url     = row.get("product_url"),
-            image_url       = row.get("image_url"),
+    string_cols = ["product_name", "category", "product_url", "image_url", "source_platform"]
+    for col in string_cols:
+        df[col] = df[col].where(pd.notna(df[col]), "").astype(str)
+
+    rows = []
+    for _, row in df.iterrows():
+        sentiment = row.get("sentiment_score")
+        if sentiment is not None:
+            sentiment = (sentiment + 1) / 2
+
+        rows.append(
+            FusedProductBaseSchemas(
+                query           = query,
+                source_platform = row.get("source_platform"),
+                product_name    = row.get("product_name"),
+                category        = row.get("category"),
+                price           = row.get("price"),
+                currency        = row.get("currency", "NGN"),
+                rating          = row.get("rating"),
+                review_count    = _safe_int(row.get("review_count")),
+                sentiment_score = sentiment,
+                product_url     = row.get("product_url"),
+                image_url       = row.get("image_url"),
+            )
         )
-        for _, row in df.iterrows()
-    ]
 
     async with db_session_manager.session() as session:
         fusion_query = DataFusionQueries(session)
@@ -70,8 +79,29 @@ async def _save_fused(df: pd.DataFrame, query: str) -> int:
     return len(rows)
 
 
+
 def _safe_int(val) -> int | None:
     try:
-        return int(val) if pd.notna(val) else None
+        if pd.isna(val):
+            return None
+
+        val = int(val)
+
+       
+        if val < 0:
+            return 0  
+
+        return val
+
     except (ValueError, TypeError):
         return None
+
+
+# ── Standalone save (called from main.py after sentiment + normalize) ─────────
+
+async def save_fused(df, query: str) -> int:
+    """
+    Persist the fully enriched fused DataFrame to the fused_products table.
+    Called from main.py after sentiment analysis and normalization are done.
+    """
+    return await _save_fused(df, query)
