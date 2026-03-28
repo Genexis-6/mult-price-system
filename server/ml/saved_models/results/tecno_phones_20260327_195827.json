@@ -1,0 +1,163 @@
+{
+  "query": "tecno phones",
+  "generated_at": "2026-03-27T19:58:27.413813",
+  "total_results": 10,
+  "training_metrics": {
+    "samples": 158,
+    "features_used": [
+      "price",
+      "rating",
+      "review_count",
+      "sentiment_score",
+      "platform_code",
+      "price_tier",
+      "review_log",
+      "price_x_reviews"
+    ],
+    "cv_r2_mean": 0.6559,
+    "cv_r2_std": 0.4291,
+    "feature_importances": {
+      "price": "0.0255",
+      "rating": "0.0274",
+      "review_count": "0.1599",
+      "sentiment_score": "0.305",
+      "platform_code": "0.0012",
+      "price_tier": "0.0491",
+      "review_log": "0.2305",
+      "price_x_reviews": "0.2014"
+    },
+    "trained_at": "2026-03-27T19:58:26.080724"
+  },
+  "recommendations": [
+    {
+      "rank": 1,
+      "product_name": "Tecno Spark 40 Smart Phone With 128GB ROM & 4GB RAM black",
+      "source_platform": "jumia",
+      "price": 169000.0,
+      "currency": "NGN",
+      "rating": 5.0,
+      "review_count": 1,
+      "sentiment_score": 1.0,
+      "recommendation_score": 0.7427,
+      "product_url": "https://www.jumia.com.ng/spark-40-smart-phone-with-128gb-rom-4gb-ram-black-tecno-mpg11453479.html",
+      "image_url": "https://ng.jumia.is/unsafe/fit-in/300x300/filters:fill(white)/product/81/0316814/1.jpg?7722"
+    },
+    {
+      "rank": 2,
+      "product_name": "Tecno v Fold Front Screen",
+      "source_platform": "jiji",
+      "price": 135000.0,
+      "currency": "NGN",
+      "rating": 4.75,
+      "review_count": 96,
+      "sentiment_score": 0.91,
+      "recommendation_score": 0.6389,
+      "product_url": "https://jiji.ng/ikeja/cell-phones-tablets-accessories/tecno-v-fold-front-screen-ARqjBU84n6GFDYGL6U97ut9U.html",
+      "image_url": "https://pictures-nigeria.jijistatic.net/176787858_MzAwLTIyNS01N2U0NmJlZGYz.webp"
+    },
+    {
+      "rank": 3,
+      "product_name": "Tecno Phantom X2 Original Screen",
+      "source_platform": "jiji",
+      "price": 120000.0,
+      "currency": "NGN",
+      "rating": 4.75,
+      "review_count": 71,
+      "sentiment_score": 0.92,
+      "recommendation_score": 0.6011,
+      "product_url": "https://jiji.ng/ikeja/cell-phones-tablets-accessories/tecno-phantom-x2-original-screen-sinI4gVYOtYCvJOQhtW2enT8.html",
+      "image_url": "https://pictures-nigeria.jijistatic.net/155950583_MzAwLTQwMC00MTA5NjkwYjhlLTI.webp"
+    },
+    {
+      "rank": 4,
+      "product_name": "Tecno v Fold 1 Screen",
+      "source_platform": "jiji",
+      "price": 345000.0,
+      "currency": "NGN",
+      "rating": 4.75,
+      "review_count": 96,
+      "sentiment_score": 0.91,
+      "recommendation_score": 0.5994,
+      "product_url": "https://jiji.ng/ikeja/cell-phones-tablets-accessories/tecno-v-fold-1-screen-pAMXVhKYse8UUaqvsCWKG2bm.html",
+      "image_url": "https://pictures-nigeria.jijistatic.net/176787153_MzAwLTIyNS1hMDM5OWEwOTRj.webp"
+    },
+    {
+      "rank": 5,
+      "product_name": "Tecno CK7 Screen",
+      "source_platform": "jiji",
+      "price": 65000.0,
+      "currency": "NGN",
+      "rating": 4.75,
+      "review_count": 71,
+      "sentiment_score": 0.92,
+      "recommendation_score": 0.5852,
+      "product_url": "https://jiji.ng/ikeja/cell-phones-tablets-accessories/tecno-ck7-screen-u41Nytcsp8kNIR5N5hZMiMd1.html",
+      "image_url": "https://pictures-nigeria.jijistatic.net/147229733_MzAwLTQwMC01Mzc5YTE2N2JlLTI.webp"
+    },
+    {
+      "rank": 6,
+      "product_name": "Tecno Spark 40 Smart Phone With 128GB ROM & 4GB RAM black",
+      "source_platform": "jumia",
+      "price": 175000.0,
+      "currency": "NGN",
+      "rating": 4.5,
+      "review_count": 2,
+      "sentiment_score": 1.0,
+      "recommendation_score": 0.5443,
+      "product_url": "https://www.jumia.com.ng/tecno-spark-40-smart-phone-with-128gb-rom-4gb-ram-black-418486481.html",
+      "image_url": "https://ng.jumia.is/unsafe/fit-in/300x300/filters:fill(white)/product/18/4684814/1.jpg?7962"
+    },
+    {
+      "rank": 7,
+      "product_name": "Tecno Spark 40c Smart Phone With 128GB ROM & 4GB RAM",
+      "source_platform": "jumia",
+      "price": 160000.0,
+      "currency": "NGN",
+      "rating": 4.75,
+      "review_count": 0,
+      "sentiment_score": 0.5,
+      "recommendation_score": 0.4229,
+      "product_url": "https://www.jumia.com.ng/tecno-spark-40c-smart-phone-with-128gb-rom-4gb-ram-419203875.html",
+      "image_url": "https://ng.jumia.is/unsafe/fit-in/300x300/filters:fill(white)/product/57/8302914/1.jpg?1385"
+    },
+    {
+      "rank": 8,
+      "product_name": "Tecno Pop 10c",
+      "source_platform": "jumia",
+      "price": 130000.0,
+      "currency": "NGN",
+      "rating": 4.75,
+      "review_count": 0,
+      "sentiment_score": 0.5,
+      "recommendation_score": 0.4224,
+      "product_url": "https://www.jumia.com.ng/tecno-pop-10c-418568158.html",
+      "image_url": "https://ng.jumia.is/unsafe/fit-in/300x300/filters:fill(white)/product/85/1865814/1.jpg?6181"
+    },
+    {
+      "rank": 9,
+      "product_name": "Tecno Pop 10 - Km4 -6.67\" -3gb Ram-128gb Rom- 5000 Mah-grey",
+      "source_platform": "konga",
+      "price": 132240.0,
+      "currency": "NGN",
+      "rating": 4.75,
+      "review_count": 0,
+      "sentiment_score": 0.5,
+      "recommendation_score": 0.4208,
+      "product_url": "https://www.konga.com/product/tecno-tecno-pop-10-km4-6-67-3gb-ram-128gb-rom-5000-mah-grey-6786488",
+      "image_url": "https://www-konga-com-res.cloudinary.com/image/upload/f_auto,fl_lossy,dpr_auto,q_auto,w_1080/media/catalog/product//I/O/118566_1751450245.png"
+    },
+    {
+      "rank": 10,
+      "product_name": "Tecno Pop 10c – 6.6” Hd+, 2gb Ram + 64gb Rom, 5000mah, 4g",
+      "source_platform": "konga",
+      "price": 130900.0,
+      "currency": "NGN",
+      "rating": 4.75,
+      "review_count": 0,
+      "sentiment_score": 0.5,
+      "recommendation_score": 0.4208,
+      "product_url": "",
+      "image_url": "https://www-konga-com-res.cloudinary.com/image/upload/f_auto,fl_lossy,dpr_auto,q_auto,w_1080/media/catalog/product//M/Z/247286_1774456455.jpg"
+    }
+  ]
+}

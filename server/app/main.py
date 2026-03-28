@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import contextlib
-from app.store import db_session_manager
-from app.utils.logger import get_logger
+from core.store import db_session_manager
+from core.utils import get_logger
 from app.routes.test import test
 
 logger = get_logger("app")

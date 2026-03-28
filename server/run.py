@@ -1,5 +1,5 @@
 
-from app.config.dev_config import settings
+from core.config import settings
 import uvicorn
 
 

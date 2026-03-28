@@ -1,0 +1,163 @@
+{
+  "query": "samsung s24",
+  "generated_at": "2026-03-27T13:49:23.057946",
+  "total_results": 10,
+  "training_metrics": {
+    "samples": 46,
+    "features_used": [
+      "price",
+      "rating",
+      "review_count",
+      "sentiment_score",
+      "platform_code",
+      "price_tier",
+      "review_log",
+      "price_x_reviews"
+    ],
+    "cv_r2_mean": -0.4525,
+    "cv_r2_std": 1.1002,
+    "feature_importances": {
+      "price": "0.2078",
+      "rating": "0.0",
+      "review_count": "0.0106",
+      "sentiment_score": "0.0446",
+      "platform_code": "0.0365",
+      "price_tier": "0.6535",
+      "review_log": "0.0083",
+      "price_x_reviews": "0.0386"
+    },
+    "trained_at": "2026-03-27T13:49:22.732953"
+  },
+  "recommendations": [
+    {
+      "rank": 1,
+      "product_name": "Samsung S24 Ultra, S23 Ultra, S22 Ultra UV Glass Guard",
+      "source_platform": "jiji",
+      "price": 5000.0,
+      "currency": "NGN",
+      "rating": 0.0,
+      "review_count": 239,
+      "sentiment_score": 0.5,
+      "recommendation_score": 0.6998,
+      "product_url": "https://jiji.ng/nnewi/cell-phones-tablets-accessories/samsung-s24-ultra-s23-ultra-s22-ultra-uv-glass-guard-lgXRYaoIk52Q2qppWfzXHPOM.html",
+      "image_url": "https://pictures-nigeria.jijistatic.net/148380163_MzAwLTMwMC0yOTU3NWIxMDQy.webp"
+    },
+    {
+      "rank": 2,
+      "product_name": "Samsung Galaxy S24ultra ,S24,S23ultra,S22ultra Clear Magsafe",
+      "source_platform": "jiji",
+      "price": 15000.0,
+      "currency": "NGN",
+      "rating": 0.0,
+      "review_count": 19,
+      "sentiment_score": 0.79,
+      "recommendation_score": 0.6986,
+      "product_url": "https://jiji.ng/ikeja/cell-phones-tablets-accessories/samsung-galaxy-s24ultra-s24-s23ultra-s22ultra-clear-magsafe-izeoiXzIy9NRn6loqmP1a1Bp.html",
+      "image_url": "https://pictures-nigeria.jijistatic.net/150974432_MzAwLTQwMC02MzJhZWMwMzgxLTE.webp"
+    },
+    {
+      "rank": 3,
+      "product_name": "Samsung Galaxy S24ultra ,S24+ ,S24 Wallet Smart Clear View",
+      "source_platform": "jiji",
+      "price": 75000.0,
+      "currency": "NGN",
+      "rating": 0.0,
+      "review_count": 19,
+      "sentiment_score": 0.79,
+      "recommendation_score": 0.6954,
+      "product_url": "https://jiji.ng/ikeja/cell-phones-tablets-accessories/samsung-galaxy-s24ultra-s24-s24-wallet-smart-clear-view-b5SomWM2mwfHg6cASbUt1mtb.html",
+      "image_url": "https://pictures-nigeria.jijistatic.net/141093690_MzAwLTQwMC0xNmViOGJkZTg0LTE.webp"
+    },
+    {
+      "rank": 4,
+      "product_name": "Samsung Galaxy S24 Ultra Xundd Case Fx",
+      "source_platform": "konga",
+      "price": 16000.0,
+      "currency": "NGN",
+      "rating": 0.0,
+      "review_count": 0,
+      "sentiment_score": 0.5,
+      "recommendation_score": 0.6738,
+      "product_url": "https://www.konga.com/product/samsung-galaxy-s24-ultra-xundd-case-fx-6487416",
+      "image_url": "https://www-konga-com-res.cloudinary.com/image/upload/f_auto,fl_lossy,dpr_auto,q_auto,w_1080/media/catalog/product//T/Q/231654_1718915814.jpg"
+    },
+    {
+      "rank": 5,
+      "product_name": "Samsung Galaxy S24 Ultra 5g case with MagSafe and stand",
+      "source_platform": "konga",
+      "price": 23000.0,
+      "currency": "NGN",
+      "rating": 0.0,
+      "review_count": 0,
+      "sentiment_score": 0.5,
+      "recommendation_score": 0.6738,
+      "product_url": "https://www.konga.com/product/samsung-galaxy-s24-ultra-5g-case-with-magsafe-and-stand-6492172",
+      "image_url": "https://www-konga-com-res.cloudinary.com/image/upload/f_auto,fl_lossy,dpr_auto,q_auto,w_1080/media/catalog/product//K/T/221195_1719767796.jpg"
+    },
+    {
+      "rank": 6,
+      "product_name": "Samsung Galaxy S24 Ultra case with MagSafe and stand",
+      "source_platform": "konga",
+      "price": 23000.0,
+      "currency": "NGN",
+      "rating": 0.0,
+      "review_count": 0,
+      "sentiment_score": 0.5,
+      "recommendation_score": 0.6738,
+      "product_url": "https://www.konga.com/product/samsung-galaxy-s24-ultra-case-with-magsafe-and-stand-6492183",
+      "image_url": "https://www-konga-com-res.cloudinary.com/image/upload/f_auto,fl_lossy,dpr_auto,q_auto,w_1080/media/catalog/product//T/F/221195_1719768062.jpg"
+    },
+    {
+      "rank": 7,
+      "product_name": "Samsung Galaxy S24 Ultra Pu Leather - Black",
+      "source_platform": "konga",
+      "price": 25000.0,
+      "currency": "NGN",
+      "rating": 0.0,
+      "review_count": 0,
+      "sentiment_score": 0.5,
+      "recommendation_score": 0.6738,
+      "product_url": "https://www.konga.com/product/samsung-galaxy-s24-ultra-pu-leather-black-6899431",
+      "image_url": "https://www-konga-com-res.cloudinary.com/image/upload/f_auto,fl_lossy,dpr_auto,q_auto,w_1080/media/catalog/product//H/F/221195_1764438202.jpg"
+    },
+    {
+      "rank": 8,
+      "product_name": "Samsung S24a400uju Monitor 24\" FHD 75hz Ips Hdmi, Displayport, Usb-C",
+      "source_platform": "jiji",
+      "price": 185000.0,
+      "currency": "NGN",
+      "rating": 0.0,
+      "review_count": 84,
+      "sentiment_score": 0.94,
+      "recommendation_score": 0.6723,
+      "product_url": "https://jiji.ng/ikeja/computer-monitors/samsung-s24a400uju-monitor-24-fhd-75hz-ips-hdmi-displayport-usb-c-p03Nm25bqDE8KtIX4XT7ahbZ.html",
+      "image_url": "https://pictures-nigeria.jijistatic.net/192289804_MzAwLTIzNi02NWYxOGY3MDUz.webp"
+    },
+    {
+      "rank": 9,
+      "product_name": "Samsung Galaxy S24 Ultra Pu Leather - Grey",
+      "source_platform": "konga",
+      "price": 25000.0,
+      "currency": "NGN",
+      "rating": 0.0,
+      "review_count": 0,
+      "sentiment_score": 0.5,
+      "recommendation_score": 0.6738,
+      "product_url": "https://www.konga.com/product/samsung-galaxy-s24-ultra-pu-leather-grey-6899427",
+      "image_url": "https://www-konga-com-res.cloudinary.com/image/upload/f_auto,fl_lossy,dpr_auto,q_auto,w_1080/media/catalog/product//G/Z/221195_1764437533.jpg"
+    },
+    {
+      "rank": 10,
+      "product_name": "Samsung Galaxy S24 Ultra Case With Magnetic Stand",
+      "source_platform": "konga",
+      "price": 25000.0,
+      "currency": "NGN",
+      "rating": 0.0,
+      "review_count": 0,
+      "sentiment_score": 0.5,
+      "recommendation_score": 0.6738,
+      "product_url": "https://www.konga.com/product/samsung-galaxy-s24-ultra-case-with-magnetic-stand-6899182",
+      "image_url": "https://www-konga-com-res.cloudinary.com/image/upload/f_auto,fl_lossy,dpr_auto,q_auto,w_1080/media/catalog/product//M/Q/221195_1764411217.jpg"
+    }
+  ]
+}
