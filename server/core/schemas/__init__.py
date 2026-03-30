@@ -1,3 +1,4 @@
 from .product_schemas import ProductSchemas
 from .product_schemas import ProductSentimentSchemas
 from .product_schemas import FusedProductBaseSchemas
+from .PredictQerySchemas import PredictQerySchemas

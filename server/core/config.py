@@ -29,7 +29,11 @@ class DevSettings(BaseSettings):
     HF_HUB_OFFLINE:str
     
     # ollama ai
-    REDIS_URL:str
+    REDIS_BROKER_URL:str
+    REDIS_BACKEND_URL:str
+    
+    REDIS_HOST:str
+    REDIS_PORT:str
     
 
 settings = DevSettings()

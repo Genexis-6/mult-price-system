@@ -21,18 +21,25 @@ services:
 
 
 
-  ollama:
-    container_name: ollama_ai
-    image: ollama/ollama:0.3.14
-    ports:
-      - "11434:11434"
+  redis:
+    container_name: redis_broker
+    image: redis:7.4-alpine
     restart: always
-    
+    ports:
+      - "6379:6379"
     volumes:
-      - ollama_data:/root/.ollama
+      - redis_data:/data
+
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
     
 volumes:
   postgres_data:
-  ollama_data:
+  redis_data:
 
