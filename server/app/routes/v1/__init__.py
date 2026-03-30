@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from .preditor_route import pred
+from .train_route import trainer
 
 
 v1 = APIRouter(
@@ -16,3 +17,4 @@ v1 = APIRouter(
 )
 
 v1.include_router(pred)
+v1.include_router(trainer)

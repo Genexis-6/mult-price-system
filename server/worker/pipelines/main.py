@@ -17,7 +17,9 @@ Two modes:
 
 import asyncio
 from typing import Literal, Optional
+import redis
 
+from core.task_definition import TaskResults
 from .etl.jumia                    import JumiaETL
 from .etl.konga                    import KongaETL
 from .etl.jiji                     import JijiETL
@@ -28,6 +30,8 @@ from .fusion.pipeline              import save_fused
 from .sentiment.sentiment_analizer import run_sentiment
 from .ml.main                      import run_ml
 from core.utils.logger              import get_logger
+from core.schemas import RedisPublishSchemas
+from ..helper import publish_redis_job
 
 logger = get_logger(__name__)
 
@@ -63,9 +67,13 @@ async def run_etl_layer(query: str, pages: int = 2) -> dict:
 # ── Full pipeline ─────────────────────────────────────────────────────────────
 
 async def run_full_pipeline(
+    
     query: str,
     pages: int = 2,
     mode:  Optional[Literal["train_model", "predict"]] = "train_model",
+    redis: redis.Redis = None,
+    task_id:Optional[str] = None
+    
 ) -> list[dict]:
     """
     Orchestrates the full recommendation pipeline for a search query.
@@ -89,7 +97,14 @@ async def run_full_pipeline(
     if total_scraped == 0:
         logger.error("No products scraped — aborting pipeline.")
         return []
-
+    
+    if etl_results:
+        await publish_redis_job(redis, RedisPublishSchemas(
+            task_id=task_id,
+            progress=10,
+            message="Matching similar products across platforms..."
+        ))
+        
     # ── Layer 2: Fusion (merge + dedup, no normalization yet) ─────────────────
     df = await merge_platforms(query)
     if df.empty:
@@ -101,6 +116,12 @@ async def run_full_pipeline(
         f"Layer 2 ✓ Fusion: {len(df)} listings | "
         f"{int(df['is_duplicate'].sum())} cross-platform duplicates flagged"
     )
+    if df:
+        await publish_redis_job(redis, RedisPublishSchemas(
+            task_id=task_id,
+            progress=30,
+            message="Analyzing customer reviews..."
+        ))
 
     # ── Layer 3: Sentiment ─────────────────────────────────────────────────────
     # Self-contained: fetches from DB, runs inference, writes scores back to DB.
@@ -109,6 +130,8 @@ async def run_full_pipeline(
 
     # ── Layer 4: Reload with sentiment scores ──────────────────────────────────
     # Re-merge so the DataFrame has the freshly written sentiment_score values.
+
+    
     df = await merge_platforms(query)
     if df.empty:
         logger.warning(f"Layer 4 ✗ No data found for query='{query}' after reload")
@@ -118,6 +141,12 @@ async def run_full_pipeline(
         f"Layer 4 ✓ Reload: {df['sentiment_score'].notna().sum()}/{len(df)} "
         f"listings have sentiment scores"
     )
+    if df:
+        await publish_redis_job(redis, RedisPublishSchemas(
+            task_id=task_id,
+            progress=50,
+            message="Preparing data for ranking..."
+        ))
 
     # ── Layer 5: Normalize ─────────────────────────────────────────────────────
     df, norm_stats = normalize(df)
@@ -125,6 +154,13 @@ async def run_full_pipeline(
 
     # Persist enriched fused DataFrame to fused_products table
     await save_fused(df, query)
+    if df:
+        await publish_redis_job(redis, RedisPublishSchemas(
+            task_id=task_id,
+            status="progress",
+            progress=70,
+            message="Ranking the best products..."
+        ))
 
     # ── Layer 6: ML ────────────────────────────────────────────────────────────
     recommendations = await run_ml(df, query, mode=mode)

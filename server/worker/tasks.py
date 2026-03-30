@@ -6,6 +6,8 @@ from typing import Optional, Literal
 from core.task_definition import TaskNames, TaskResults
 from core.redis import  get_redis, init_redis
 from core.utils import get_logger
+from .helper import publish_redis_job
+from core.schemas import RedisPublishSchemas
 from .main import broker
 
 logger = get_logger(__name__)
@@ -34,33 +36,32 @@ async def pipeline_task_handler(
 
     try:
         logger.info(f"Task {task_id} started for query: {query}")
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            job_id=task_id,
+            status=TaskResults.STARTED,
+            mode=mode,
+            result=None,
+            message=f"Processing query: {query}"
+        ))
 
-        await redis_client.publish(
-            f"jobs:{task_id}",
-            json.dumps({
-                "job_id": task_id,
-                "status": TaskResults.STARTED,
-                "message": f"Processing query: {query}",
-            })
-        )
 
         from worker.pipelines import run_full_pipeline
 
         result = await run_full_pipeline(
+            task_id= task_id,
             query=query,
             mode=mode,
             pages=pages if mode == "train_model" else 1
         )
-
-        await redis_client.publish(
-            f"jobs:{task_id}",
-            json.dumps({
-                "job_id": task_id,
-                "status": TaskResults.COMPLETED,
-                "result": result,
-            })
-        )
-
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            job_id=task_id,
+            status=TaskResults.COMPLETED,
+            mode=mode,
+            result=result,
+            progress=100,
+            message="Your recommendation is complete"
+        ))
+        
         return result
 
     except Exception as e:
