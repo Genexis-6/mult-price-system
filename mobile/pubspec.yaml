@@ -44,13 +44,16 @@ dependencies:
   google_fonts: ^8.0.2
   flutter_screenutil: ^5.9.3
   animations: ^2.1.2
-  animated_notch_bottom_bar: ^1.0.4
+ 
   font_awesome_flutter: ^11.0.0
+  carousel_slider: ^5.1.2
+  build_runner: ^2.5.4
+  flutter_gen_runner: ^5.13.0+1
+  flutter_floating_bottom_bar: ^1.4.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  build_runner: ^2.4.6
   freezed: ^2.4.5
   json_serializable: ^6.7.1 
 
@@ -73,8 +76,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
+  assets:
+    - assets/images/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

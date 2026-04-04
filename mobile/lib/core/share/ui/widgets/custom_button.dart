@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobile/core/theme/app_color.dart';
 import 'package:mobile/core/theme/text_theme.dart';
 
-
 class CustomButtons {
   // Primary Button
   static Widget primaryButton({
@@ -83,7 +82,7 @@ class CustomButtons {
       child: OutlinedButton(
         onPressed: isEnabled && !isLoading ? onPressed : null,
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: AppColors.primaryBlueGrey, width: 1.5),
+          side: BorderSide(color: AppColors.primary, width: 1.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.r),
           ),
@@ -94,20 +93,20 @@ class CustomButtons {
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBlueGrey),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, color: AppColors.primaryBlueGrey, size: 20.sp),
+                    Icon(icon, color: AppColors.primary, size: 20.sp),
                     SizedBox(width: 8.w),
                   ],
                   Text(
                     text,
                     style: AppTextTheme.lightTextTheme.labelLarge?.copyWith(
-                      color: AppColors.primaryBlueGrey,
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -133,14 +132,14 @@ class CustomButtons {
               child: CircularProgressIndicator(
                 strokeWidth: 2,
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  textColor ?? AppColors.primaryBlueGrey,
+                  textColor ?? AppColors.primary,
                 ),
               ),
             )
           : Text(
               text,
               style: AppTextTheme.lightTextTheme.labelLarge?.copyWith(
-                color: textColor ?? AppColors.primaryBlueGrey,
+                color: textColor ?? AppColors.primary,
               ),
             ),
     );
@@ -159,12 +158,12 @@ class CustomButtons {
       height: size.h,
       width: size.w,
       decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.primaryBlueGrey.withOpacity(0.1),
+        color: backgroundColor ?? AppColors.primary.withOpacity(0.1),
         shape: BoxShape.circle,
       ),
       child: IconButton(
         onPressed: onPressed,
-        icon: Icon(icon, color: iconColor ?? AppColors.primaryBlueGrey),
+        icon: Icon(icon, color: iconColor ?? AppColors.primary),
         iconSize: iconSize.sp,
       ),
     );
@@ -180,7 +179,7 @@ class CustomButtons {
     if (isExtended && label != null) {
       return FloatingActionButton.extended(
         onPressed: onPressed,
-        backgroundColor: AppColors.accentTeal,
+        backgroundColor: AppColors.primary,
         icon: Icon(icon, color: Colors.white),
         label: Text(
           label,
@@ -193,7 +192,7 @@ class CustomButtons {
     
     return FloatingActionButton(
       onPressed: onPressed,
-      backgroundColor: AppColors.accentTeal,
+      backgroundColor: AppColors.primary,
       child: Icon(icon, color: Colors.white),
     );
   }
@@ -209,7 +208,7 @@ class CustomButtons {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        side: BorderSide(color: AppColors.greyMedium),
+        side: BorderSide(color: AppColors.grey300),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
         ),
@@ -218,7 +217,7 @@ class CustomButtons {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: backgroundColor ?? AppColors.primaryBlueGrey, size: 20.sp),
+          Icon(icon, color: backgroundColor ?? AppColors.primary, size: 20.sp),
           SizedBox(width: 12.w),
           Text(
             text,

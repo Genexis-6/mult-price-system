@@ -5,65 +5,65 @@ class AppTextTheme {
   static TextTheme get lightTextTheme {
     try {
       return TextTheme(
-        displayLarge: GoogleFonts.spaceMono(
+        displayLarge: GoogleFonts.googleSansFlex(
           fontSize: 57,
           fontWeight: FontWeight.bold,
           letterSpacing: -0.5,
         ),
-        displayMedium: GoogleFonts.spaceMono(
+        displayMedium: GoogleFonts.googleSansFlex(
           fontSize: 45,
           fontWeight: FontWeight.bold,
           letterSpacing: -0.5,
         ),
-        displaySmall: GoogleFonts.spaceMono(
+        displaySmall: GoogleFonts.googleSansFlex(
           fontSize: 36,
           fontWeight: FontWeight.bold,
         ),
-        headlineLarge: GoogleFonts.spaceMono(
+        headlineLarge: GoogleFonts.googleSansFlex(
           fontSize: 32,
           fontWeight: FontWeight.w600,
         ),
-        headlineMedium: GoogleFonts.spaceMono(
+        headlineMedium: GoogleFonts.googleSansFlex(
           fontSize: 28,
           fontWeight: FontWeight.w600,
         ),
-        headlineSmall: GoogleFonts.spaceMono(
+        headlineSmall: GoogleFonts.googleSansFlex(
           fontSize: 24,
           fontWeight: FontWeight.w600,
         ),
-        titleLarge: GoogleFonts.spaceMono(
+        titleLarge: GoogleFonts.googleSansFlex(
           fontSize: 22,
           fontWeight: FontWeight.w600,
         ),
-        titleMedium: GoogleFonts.spaceMono(
+        titleMedium: GoogleFonts.googleSansFlex(
           fontSize: 18,
           fontWeight: FontWeight.w500,
         ),
-        titleSmall: GoogleFonts.spaceMono(
+        titleSmall: GoogleFonts.googleSansFlex(
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
-        bodyLarge: GoogleFonts.spaceMono(
+        bodyLarge: GoogleFonts.googleSansFlex(
           fontSize: 16,
           fontWeight: FontWeight.normal,
         ),
-        bodyMedium: GoogleFonts.spaceMono(
+        bodyMedium: GoogleFonts.googleSansFlex(
           fontSize: 14,
           fontWeight: FontWeight.normal,
         ),
-        bodySmall: GoogleFonts.spaceMono(
+        bodySmall: GoogleFonts.googleSansFlex(
           fontSize: 12,
           fontWeight: FontWeight.normal,
         ),
-        labelLarge: GoogleFonts.spaceMono(
+        labelLarge: GoogleFonts.googleSansFlex(
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
-        labelMedium: GoogleFonts.spaceMono(
+        labelMedium: GoogleFonts.googleSansFlex(
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
-        labelSmall: GoogleFonts.spaceMono(
+        labelSmall: GoogleFonts.googleSansFlex(
           fontSize: 11,
           fontWeight: FontWeight.w500,
         ),
@@ -74,7 +74,7 @@ class AppTextTheme {
       return _getSystemFontTextTheme();
     }
   }
-  
+
   static TextTheme _getSystemFontTextTheme() {
     return TextTheme(
       displayLarge: const TextStyle(
@@ -156,7 +156,7 @@ class AppTextTheme {
       ),
     );
   }
-  
+
   static TextTheme get darkTextTheme {
     // Similarly, implement dark theme with fallback
     final lightTheme = lightTextTheme;

@@ -33,13 +33,13 @@ class PageNotFound extends StatelessWidget {
                     width: 120.w,
                     height: 120.w,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryBlueGrey.withOpacity(0.1),
+                      color: AppColors.primaryDark.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.search_off_outlined,
                       size: 60.sp,
-                      color: AppColors.primaryBlueGrey,
+                      color: AppColors.primaryDark,
                     ),
                   ),
 
@@ -118,7 +118,7 @@ class PageNotFound extends StatelessWidget {
                         child: CustomText(
                           'Contact Support',
                           type: TextType.bodySmall,
-                          color: AppColors.accentTeal,
+                          color: AppColors.secondary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -152,10 +152,10 @@ class PageNotFound extends StatelessWidget {
         children: [
           Text(
             '4',
-            style: GoogleFonts.spaceMono(
+            style: GoogleFonts.googleSansFlex(
               fontSize: 120.sp,
               fontWeight: FontWeight.bold,
-              color: AppColors.primaryBlueGrey,
+              color: AppColors.primary,
               height: 1,
             ),
           ),
@@ -167,12 +167,12 @@ class PageNotFound extends StatelessWidget {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.accentTeal, AppColors.accentDarkTeal],
+                colors: [AppColors.secondary, AppColors.secondaryDark],
               ),
               borderRadius: BorderRadius.circular(20.r),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.accentTeal.withOpacity(0.3),
+                  color: AppColors.secondary.withOpacity(0.3),
                   blurRadius: 10.r,
                   offset: Offset(0, 5.h),
                 ),
@@ -181,7 +181,7 @@ class PageNotFound extends StatelessWidget {
             child: Center(
               child: Text(
                 '0',
-                style: GoogleFonts.spaceMono(
+                style: GoogleFonts.googleSansFlex(
                   fontSize: 100.sp,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -192,10 +192,10 @@ class PageNotFound extends StatelessWidget {
           ),
           Text(
             '4',
-            style: GoogleFonts.spaceMono(
+            style: GoogleFonts.googleSansFlex(
               fontSize: 120.sp,
               fontWeight: FontWeight.bold,
-              color: AppColors.primaryBlueGrey,
+              color: AppColors.primaryDark,
               height: 1,
             ),
           ),

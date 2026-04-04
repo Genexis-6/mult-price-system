@@ -9,8 +9,8 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.light,
     colorScheme: const ColorScheme.light(
-      primary: AppColors.primaryBlueGrey,
-      secondary: AppColors.accentTeal,
+      primary: AppColors.primaryDark,
+      secondary: AppColors.secondary,
       surface: AppColors.surface,
       error: AppColors.error,
       onPrimary: Colors.white,
@@ -18,7 +18,7 @@ class AppTheme {
       onSurface: AppColors.textPrimary,
       onError: Colors.white,
     ),
-    scaffoldBackgroundColor: AppColors.backgroundLight,
+    scaffoldBackgroundColor: AppColors.background,
     textTheme: AppTextTheme.lightTextTheme,
     appBarTheme: AppBarTheme(
       elevation: 0,
@@ -62,11 +62,11 @@ class AppTheme {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.r),
-        borderSide: BorderSide(color: AppColors.greyMedium),
+        borderSide: BorderSide(color: AppColors.grey500),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.r),
-        borderSide: BorderSide(color: AppColors.primaryBlueGrey, width: 2),
+        borderSide: BorderSide(color: AppColors.primaryDark, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.r),
@@ -82,8 +82,8 @@ class AppTheme {
       color: Colors.white,
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: AppColors.greyLight,
-      selectedColor: AppColors.primaryBlueGrey,
+      backgroundColor: AppColors.primary,
+      selectedColor: AppColors.primaryDark,
       labelStyle: AppTextTheme.lightTextTheme.labelMedium,
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
       shape: RoundedRectangleBorder(
@@ -91,7 +91,7 @@ class AppTheme {
       ),
     ),
     dividerTheme: DividerThemeData(
-      color: AppColors.greyMedium,
+      color: AppColors.grey500,
       thickness: 1,
       space: 20.h,
     ),
@@ -102,7 +102,7 @@ class AppTheme {
     brightness: Brightness.dark,
     colorScheme: const ColorScheme.dark(
       primary: AppColors.primaryLight,
-      secondary: AppColors.accentLightTeal,
+      secondary: AppColors.secondaryLight,
       surface: AppColors.surfaceDark,
       error: AppColors.error,
       onPrimary: Colors.white,
@@ -152,7 +152,7 @@ class AppTheme {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.r),
-        borderSide: BorderSide(color: AppColors.greyDark),
+        borderSide: BorderSide(color: AppColors.grey800),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.r),
@@ -172,7 +172,7 @@ class AppTheme {
       color: AppColors.surfaceDark,
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: AppColors.greyDark,
+      backgroundColor: AppColors.grey800,
       selectedColor: AppColors.primaryLight,
       labelStyle: AppTextTheme.darkTextTheme.labelMedium,
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
@@ -181,7 +181,7 @@ class AppTheme {
       ),
     ),
     dividerTheme: DividerThemeData(
-      color: AppColors.greyDark,
+      color: AppColors.grey800,
       thickness: 1,
       space: 20.h,
     ),

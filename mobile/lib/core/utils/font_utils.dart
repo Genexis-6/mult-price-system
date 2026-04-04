@@ -8,7 +8,7 @@ class FontUtils {
     if (!_initialized) {
       try {
         // Pre-load fonts to avoid platform channel issues
-         GoogleFonts.spaceMonoTextTheme();
+         GoogleFonts.googleSansFlexTextTheme();
         _initialized = true;
       } catch (e) {
         debugPrint('Error loading fonts: $e');

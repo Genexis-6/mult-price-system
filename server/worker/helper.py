@@ -1,4 +1,5 @@
 import redis.asyncio
+import json
 from core.schemas import RedisPublishSchemas
 
 async def publish_redis_job(redis: redis.asyncio.Redis, job:RedisPublishSchemas):
@@ -6,6 +7,6 @@ async def publish_redis_job(redis: redis.asyncio.Redis, job:RedisPublishSchemas)
         return None
     
     return await redis.publish(
-        f"jobs:{job.job_id}", job.model_dump()
+        f"jobs:{job.task_id}",json.dumps(job.model_dump(mode="json"))
     )
     

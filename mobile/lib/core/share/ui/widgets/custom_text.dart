@@ -50,49 +50,96 @@ class CustomText extends StatelessWidget {
     
     switch (type) {
       case TextType.displayLarge:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 57, fontWeight: FontWeight.bold);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 57, 
+          fontWeight: FontWeight.bold,
+          letterSpacing: -0.5,
+        );
         break;
       case TextType.displayMedium:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 45, fontWeight: FontWeight.bold);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 45, 
+          fontWeight: FontWeight.bold,
+          letterSpacing: -0.5,
+        );
         break;
       case TextType.displaySmall:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 36, fontWeight: FontWeight.bold);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 36, 
+          fontWeight: FontWeight.bold,
+        );
         break;
       case TextType.headlineLarge:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 32, fontWeight: FontWeight.w600);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 32, 
+          fontWeight: FontWeight.w600,
+        );
         break;
       case TextType.headlineMedium:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 28, fontWeight: FontWeight.w600);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 28, 
+          fontWeight: FontWeight.w600,
+        );
         break;
       case TextType.headlineSmall:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 24, fontWeight: FontWeight.w600);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 24, 
+          fontWeight: FontWeight.w600,
+        );
         break;
       case TextType.titleLarge:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 22, fontWeight: FontWeight.w600);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 22, 
+          fontWeight: FontWeight.w600,
+        );
         break;
       case TextType.titleMedium:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 18, fontWeight: FontWeight.w500);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 18, 
+          fontWeight: FontWeight.w500,
+        );
         break;
       case TextType.titleSmall:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 16, fontWeight: FontWeight.w500);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 16, 
+          fontWeight: FontWeight.w500,
+        );
         break;
       case TextType.bodyLarge:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 16, fontWeight: FontWeight.normal);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 16, 
+          fontWeight: FontWeight.normal,
+        );
         break;
       case TextType.bodyMedium:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 14, fontWeight: FontWeight.normal);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 14, 
+          fontWeight: FontWeight.normal,
+        );
         break;
       case TextType.bodySmall:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 12, fontWeight: FontWeight.normal);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 12, 
+          fontWeight: FontWeight.normal,
+        );
         break;
       case TextType.labelLarge:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 14, fontWeight: FontWeight.w600);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 14, 
+          fontWeight: FontWeight.w600,
+        );
         break;
       case TextType.labelMedium:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 12, fontWeight: FontWeight.w500);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 12, 
+          fontWeight: FontWeight.w500,
+        );
         break;
       case TextType.labelSmall:
-        baseStyle = GoogleFonts.spaceMono(fontSize: 11, fontWeight: FontWeight.w500);
+        baseStyle = GoogleFonts.inter(
+          fontSize: 11, 
+          fontWeight: FontWeight.w500,
+        );
         break;
     }
     
@@ -100,17 +147,14 @@ class CustomText extends StatelessWidget {
     Color finalColor;
     
     if (color != null) {
-      // If explicit color is provided, use it regardless of theme
       finalColor = color!;
     } else if (isColorResponsive) {
-      // Use theme-aware colors
       if (isDarkMode) {
         finalColor = darkColor ?? _getDarkModeColorForType();
       } else {
         finalColor = lightColor ?? _getLightModeColorForType();
       }
     } else {
-      // Use default colors without theme awareness
       finalColor = _getDefaultColorForType();
     }
     
@@ -166,7 +210,7 @@ class CustomText extends StatelessWidget {
       case TextType.labelLarge:
       case TextType.labelMedium:
       case TextType.labelSmall:
-        return AppColors.greyLight;
+        return AppColors.grey300;
       default:
         return AppColors.textLight;
     }

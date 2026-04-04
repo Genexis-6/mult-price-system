@@ -37,7 +37,10 @@ async def pipeline_task_handler(
     try:
         logger.info(f"Task {task_id} started for query: {query}")
         await publish_redis_job(redis_client, RedisPublishSchemas(
-            job_id=task_id,
+            progress=0,
+            task_id=task_id,
+            
+            # job_id=task_id,
             status=TaskResults.STARTED,
             mode=mode,
             result=None,
@@ -54,8 +57,8 @@ async def pipeline_task_handler(
             pages=pages if mode == "train_model" else 1
         )
         await publish_redis_job(redis_client, RedisPublishSchemas(
-            job_id=task_id,
-            status=TaskResults.COMPLETED,
+            task_id=task_id,
+            status=TaskResults.COMPLETED.value,
             mode=mode,
             result=result,
             progress=100,
@@ -74,3 +77,7 @@ async def pipeline_task_handler(
             })
         )
         raise
+    
+    
+    
+# askiq worker worker.main:broker --workers 8 --log-level INFO

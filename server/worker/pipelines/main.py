@@ -116,7 +116,7 @@ async def run_full_pipeline(
         f"Layer 2 ✓ Fusion: {len(df)} listings | "
         f"{int(df['is_duplicate'].sum())} cross-platform duplicates flagged"
     )
-    if df:
+    if df is not None and not df.empty:
         await publish_redis_job(redis, RedisPublishSchemas(
             task_id=task_id,
             progress=30,
@@ -141,7 +141,7 @@ async def run_full_pipeline(
         f"Layer 4 ✓ Reload: {df['sentiment_score'].notna().sum()}/{len(df)} "
         f"listings have sentiment scores"
     )
-    if df:
+    if df is not None and not df.empty:
         await publish_redis_job(redis, RedisPublishSchemas(
             task_id=task_id,
             progress=50,
@@ -154,10 +154,9 @@ async def run_full_pipeline(
 
     # Persist enriched fused DataFrame to fused_products table
     await save_fused(df, query)
-    if df:
+    if df is not None and not df.empty:
         await publish_redis_job(redis, RedisPublishSchemas(
             task_id=task_id,
-            status="progress",
             progress=70,
             message="Ranking the best products..."
         ))
