@@ -5,7 +5,7 @@ import json
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 
-from core.schemas import PredictQerySchemas
+from core.schemas import PredictQerySchemas, CustomResponseSchemas
 from app.helpers import redis_injection
 from core.task_definition import TaskNames, TaskResults
 from core.utils import get_logger
@@ -27,15 +27,19 @@ async def predict_product(q: PredictQerySchemas):
 
         job_id = task.task_id
 
-        return {
+        return CustomResponseSchemas.success_response(
+           data={
             "job_id": job_id,
             "status": "pending",
-            "message": "Task submitted successfully"
-        }
+        }, 
+           message="Task submitted successfully",
+           status_code=200
+             
+        )
 
     except Exception as e:
         logger.error(f"Error starting task: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise CustomResponseSchemas.error_response(status_code=500, message=str(e), data=None)
     
       
 

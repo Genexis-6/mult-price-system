@@ -80,4 +80,4 @@ async def pipeline_task_handler(
     
     
     
-# askiq worker worker.main:broker --workers 8 --log-level INFO
+# taskiq worker worker.main:broker --workers 8 --log-level INFO

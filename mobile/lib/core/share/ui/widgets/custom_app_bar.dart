@@ -4,9 +4,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobile/core/share/ui/widgets/platform_icons.dart';
 import 'package:mobile/core/share/ui/widgets/welcome_section.dart';
 import 'package:mobile/core/theme/app_color.dart';
-import 'package:mobile/gen/assets.gen.dart';
 
-class CustomAppBar extends StatelessWidget {
+class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isDark;
   final double scrollOffset;
   final VoidCallback onSearch;
@@ -24,63 +23,72 @@ class CustomAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCollapsed = scrollOffset > 100;
+    
     return SliverAppBar(
       expandedHeight: 220.h,
-      collapsedHeight: 50.h,
+      collapsedHeight: kToolbarHeight,
       floating: true,
       pinned: true,
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-      elevation: scrollOffset > 100 ? 2 : 0,
-      flexibleSpace: FlexibleSpaceBar(
-        collapseMode: CollapseMode.parallax,
-        titlePadding: EdgeInsets.zero,
-        title: CollapsedAppBarTitle(scrollOffset: scrollOffset),
-        background: CustomAppBarBackground(
-          isDark: isDark,
-          searchController: searchController,
-          onSearch: onSearch,
-          isLoading: isLoading,
-        ),
-      ),
-    );
-  }
-}
-
-class CollapsedAppBarTitle extends StatelessWidget {
-  final double scrollOffset;
-
-  const CollapsedAppBarTitle({super.key, required this.scrollOffset});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 200),
-      opacity: scrollOffset > 100 ? 1.0 : 0.0,
-      child: Padding(
-        padding: EdgeInsets.only(left: 20.w, right: 20.w, bottom: 20.w),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-              ).createShader(bounds),
-              child: Text(
-                'MulaSearch',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+      elevation: isCollapsed ? 2 : 0,
+      flexibleSpace: LayoutBuilder(
+        builder: (context, constraints) {
+          final isExpanded = constraints.maxHeight > kToolbarHeight + 50;
+          
+          return Stack(
+            children: [
+              // Background that fades out when collapsed
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: isExpanded ? 1.0 : 0.0,
+                child: CustomAppBarBackground(
+                  isDark: isDark,
+                  searchController: searchController,
+                  onSearch: onSearch,
+                  isLoading: isLoading,
                 ),
               ),
-            ),
-          ],
-        ),
+              // Collapsed title that fades in when collapsed
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: isExpanded ? 0.0 : 1.0,
+                child: SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ShaderMask(
+                          shaderCallback: (bounds) => const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                          ).createShader(bounds),
+                          child: Text(
+                            'MulaSearch',
+                            style: TextStyle(
+                              fontSize: 20.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const StackedPlatformLogos(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
+
+  @override
+  Size get preferredSize => Size.fromHeight(kToolbarHeight);
 }
 
 class CustomAppBarBackground extends StatelessWidget {
@@ -141,26 +149,32 @@ class CustomAppBarBackground extends StatelessWidget {
             ),
           );
         }),
-        // Main content
+        // Main content - FIXED: Made scrollable or adjusted spacing
         SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 12.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    AnimatedPlatformIcons(),
-                    const StackedPlatformLogos(),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-                const WelcomeSection(),
-                SizedBox(height: 12.h),
-                const SmartTagline(),
-              ],
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(height: 12.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const AnimatedPlatformIcons(),
+                      const StackedPlatformLogos(),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+                  const WelcomeSection(),
+                  SizedBox(height: 8.h),
+                  const SmartTagline(),
+                  SizedBox(height: 8.h),
+                ],
+              ),
             ),
           ),
         ),

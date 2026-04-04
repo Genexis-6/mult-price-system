@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobile/core/share/data/model/product_model.dart';
 import 'package:mobile/core/share/ui/widgets/custom_scafold.dart';
+import 'package:mobile/core/share/ui/widgets/custom_snack_bar.dart';
 import 'package:mobile/core/theme/app_color.dart';
+import 'package:mobile/features/home/application/provider/home_provider.dart';
 import 'package:mobile/features/home/data/model/dummy_data.dart';
 import 'package:mobile/features/home/data/model/news_model.dart';
 import 'package:mobile/features/home/ui/widgets/widgets.dart';
@@ -70,10 +72,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   searches: DummyData.getRecentSearches(),
                   onSearchTap: _handleRecentSearchTap,
                 ),
-                FeaturedProductsList(
-                  products: DummyData.getFeaturedProducts(),
-                  onProductTap: _handleProductTap,
-                ),
+                // FeaturedProductsList(
+                //   products: DummyData.getFeaturedProducts(),
+                //   onProductTap: _handleProductTap,
+                // ),
                 SizedBox(height: 20.h),
               ]),
             ),
@@ -83,27 +85,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  void _handleSearch() {
+  void _handleSearch() async{
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
 
-    setState(() => _isLoading = true);
+    try{
+      setState(() => _isLoading = true);
 
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Searching for: $query'),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10.r),
-            ),
-          ),
-        );
-      }
-    });
+      var res = await ref.read(homeProvider.notifier).predict(query: query);
+      // ignore: use_build_context_synchronously
+      CustomSnackbar.info(context: context, message: res.message);
+
+    }finally{
+      setState(() => _isLoading = false);
+    }
   }
 
   void _cancelTask() {

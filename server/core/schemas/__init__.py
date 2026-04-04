@@ -3,3 +3,4 @@ from .product_schemas import ProductSentimentSchemas
 from .product_schemas import FusedProductBaseSchemas
 from .route_schemas_res import PredictQerySchemas, TrainModelQuerySchemas
 from .redis_schemas import RedisPublishSchemas
+from .response_schemas import CustomResponseSchemas

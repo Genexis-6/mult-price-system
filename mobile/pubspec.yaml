@@ -50,6 +50,7 @@ dependencies:
   build_runner: ^2.5.4
   flutter_gen_runner: ^5.13.0+1
   flutter_floating_bottom_bar: ^1.4.0
+  flutter_dotenv: ^6.0.0
 
 dev_dependencies:
   flutter_test:
