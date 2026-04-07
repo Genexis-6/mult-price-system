@@ -1,31 +1,23 @@
-class Product {
-  final String id;
-  final String name;
-  final double price;
-  final double? originalPrice;
-  final String platform;
-  final double rating;
-  final int reviewCount;
-  final String imageUrl;
-  final double sentimentScore;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  Product({
-    required this.id,
-    required this.name,
-    required this.price,
-    this.originalPrice,
-    required this.platform,
-    required this.rating,
-    required this.reviewCount,
-    required this.imageUrl,
-    required this.sentimentScore,
-  });
+part 'product_model.freezed.dart';
+part 'product_model.g.dart';
 
-  double get discountPercentage {
-    if (originalPrice == null) return 0;
-    return ((originalPrice! - price) / originalPrice!) * 100;
-  }
+@freezed
+class Product with _$Product {
+  const factory Product({
+    required int rank,
+    @JsonKey(name: 'product_name') required String productName,
+    @JsonKey(name: 'source_platform') required String sourcePlatform,
+    required double price,
+    required String currency,
+    required double rating,
+    @JsonKey(name: 'review_count') required int reviewCount,
+    @JsonKey(name: 'sentiment_score') required double sentimentScore,
+    @JsonKey(name: 'recommendation_score') required double recommendationScore,
+    @JsonKey(name: 'product_url') required String productUrl,
+    @JsonKey(name: 'image_url') required String imageUrl,
+  }) = _Product;
 
-  String get formattedPrice => '\$${price.toStringAsFixed(2)}';
-  String get formattedOriginalPrice => originalPrice != null ? '\$${originalPrice!.toStringAsFixed(2)}' : '';
+  factory Product.fromJson(Map<String, dynamic> json) => _$ProductFromJson(json);
 }

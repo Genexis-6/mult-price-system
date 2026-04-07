@@ -22,5 +22,20 @@ class HomeApi {
     }
   }
 
+   Future<CustomResponse> checkTaskStatus(String taskId) async {
+    try {
+      final res = await _api.get("/predict/status/$taskId");
+      return CustomResponse.fromJson(res.data);
+    } on DioException catch (e) {
+      return ApiExceptionHandler.handleDioException(e);
+    } catch (e) {
+      return CustomResponse.error(
+        message: 'Failed to check task status',
+        errorCode: 'STATUS_CHECK_ERROR',
+        statusCode: 500,
+      );
+    }
+  }
+
   // Gen
 }

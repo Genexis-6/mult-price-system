@@ -1,28 +1,18 @@
-class TaskStatus {
-  final String taskId;
-  final String status;
-  final int progress;
-  final String message;
-  final DateTime timestamp;
-  final Map<String, dynamic>? result;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  TaskStatus({
-    required this.taskId,
-    required this.status,
-    required this.progress,
-    required this.message,
-    required this.timestamp,
-    this.result,
-  });
+part 'task_status_model.freezed.dart';
+part 'task_status_model.g.dart';
 
-  factory TaskStatus.fromJson(Map<String, dynamic> json) {
-    return TaskStatus(
-      taskId: json['task_id'],
-      status: json['status'],
-      progress: json['progress'],
-      message: json['message'],
-      timestamp: DateTime.parse(json['timestamp']),
-      result: json['result'],
-    );
-  }
+@freezed
+class TaskStatus with _$TaskStatus {
+  const factory TaskStatus({
+    required String taskId,
+    @Default('processing') String status,
+    @Default(0) int progress,
+    @Default('') String message,
+    required DateTime timestamp,
+    @Default(null) dynamic result,
+  }) = _TaskStatus;
+
+  factory TaskStatus.fromJson(Map<String, dynamic> json) => _$TaskStatusFromJson(json);
 }

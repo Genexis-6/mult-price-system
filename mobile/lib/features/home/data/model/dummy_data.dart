@@ -62,54 +62,6 @@ class DummyData {
     );
   }
 
-  static List<Product> getFeaturedProducts() {
-    return [
-      Product(
-        id: '1',
-        name: 'iPhone 15 Pro Max',
-        price: 1199.99,
-        originalPrice: 1399.99,
-        platform: 'Amazon',
-        rating: 4.8,
-        reviewCount: 1245,
-        imageUrl: 'https://picsum.photos/200/200?random=5',
-        sentimentScore: 0.92,
-      ),
-      Product(
-        id: '2',
-        name: 'Samsung Galaxy S24 Ultra',
-        price: 1299.99,
-        originalPrice: 1399.99,
-        platform: 'Best Buy',
-        rating: 4.7,
-        reviewCount: 892,
-        imageUrl: 'https://picsum.photos/200/200?random=6',
-        sentimentScore: 0.88,
-      ),
-      Product(
-        id: '3',
-        name: 'MacBook Pro M3',
-        price: 1999.99,
-        originalPrice: 2199.99,
-        platform: 'Apple Store',
-        rating: 4.9,
-        reviewCount: 3456,
-        imageUrl: 'https://picsum.photos/200/200?random=7',
-        sentimentScore: 0.95,
-      ),
-      Product(
-        id: '4',
-        name: 'Sony WH-1000XM5',
-        price: 349.99,
-        originalPrice: 399.99,
-        platform: 'Walmart',
-        rating: 4.6,
-        reviewCount: 789,
-        imageUrl: 'https://picsum.photos/200/200?random=8',
-        sentimentScore: 0.85,
-      ),
-    ];
-  }
 
   static Map<String, dynamic> getStats() {
     return {

@@ -5,13 +5,14 @@ import 'package:mobile/core/theme/app_color.dart';
 class SearchBarWidget extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSearch;
-  final bool isLoading;
+  final bool isLoading, readOnly;
 
   const SearchBarWidget({
     super.key,
     required this.controller,
     required this.onSearch,
     this.isLoading = false,
+    required this.readOnly
   });
 
   @override
@@ -21,6 +22,7 @@ class SearchBarWidget extends StatelessWidget {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
       child: TextField(
+        readOnly: readOnly,
         controller: controller,
         style: TextStyle(
           fontSize: 16.sp,

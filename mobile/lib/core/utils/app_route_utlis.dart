@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/features/home/data/model/recommendation_model.dart';
 import 'package:mobile/features/home/ui/screen/home_screen.dart';
+import 'package:mobile/features/home/ui/screen/recommendation_results_screen.dart';
 import 'package:mobile/features/settings/ui/screen/settings_screen.dart';
 import 'package:mobile/features/track/ui/screen/track_screen.dart';
 
@@ -15,6 +17,7 @@ class AppAvaliableRoute {
   final bool showBadge;
   final int? badgeCount;
   final Color? badgeColor;
+  final List<RouteBase>? subRoutes;
 
   AppAvaliableRoute({
     required this.index,
@@ -25,6 +28,7 @@ class AppAvaliableRoute {
     this.showBadge = false,
     this.badgeCount,
     this.badgeColor,
+    this.subRoutes,
   });
 }
 
@@ -36,6 +40,18 @@ class AppRouteUtlis {
       path: "/home",
       name: "Home",
       icon: FontAwesomeIcons.house,
+      subRoutes: [
+        GoRoute(
+          path: "/recommendations",
+          builder: (context, state) {
+            var res = state.extra as RecommendationModel;
+            return RecommendationResultsScreen(
+              products: res.product,
+              query: res.query,
+            );
+          },
+        ),
+      ],
     ),
     AppAvaliableRoute(
       screen: const TrackScreen(),
@@ -68,15 +84,16 @@ class AppRouteUtlis {
     routes: [
       ShellRoute(
         builder: (context, state, child) => MainShellWidgets(child: child),
-        routes: routes
-            .map(
-              (route) => GoRoute(
-                path: route.path,
-                name: route.name,
-                builder: (context, state) => route.screen,
-              ),
-            )
-            .toList(),
+        routes: [
+          ...routes.map(
+            (route) => GoRoute(
+              path: route.path,
+              name: route.name,
+              routes: route.subRoutes != null ? route.subRoutes! : [],
+              builder: (context, state) => route.screen,
+            ),
+          ),
+        ],
       ),
     ],
   );

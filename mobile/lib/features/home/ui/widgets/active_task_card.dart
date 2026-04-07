@@ -3,26 +3,31 @@ import 'package:flutter/material.dart';
 // import 'package:flutter_screenutil.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobile/core/theme/app_color.dart';
-
 import '../../data/model/task_status_model.dart';
 
 class ActiveTaskCard extends StatefulWidget {
   final TaskStatus? task;
-  final VoidCallback onCancel;
+  final String? message;
+  // final VoidCallback onCancel;
 
   const ActiveTaskCard({
     super.key,
     this.task,
-    required this.onCancel,
+    // required this.onCancel,
+    this.message,
   });
 
   @override
   State<ActiveTaskCard> createState() => _ActiveTaskCardState();
 }
 
-class _ActiveTaskCardState extends State<ActiveTaskCard> with SingleTickerProviderStateMixin {
+class _ActiveTaskCardState extends State<ActiveTaskCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+
+  // Track previous progress for animation
+  double _previousProgress = 0;
 
   @override
   void initState() {
@@ -37,6 +42,15 @@ class _ActiveTaskCardState extends State<ActiveTaskCard> with SingleTickerProvid
   }
 
   @override
+  void didUpdateWidget(ActiveTaskCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Trigger animation when progress changes
+    if (oldWidget.task?.progress != widget.task?.progress) {
+      _pulseController.forward(from: 0);
+    }
+  }
+
+  @override
   void dispose() {
     _pulseController.dispose();
     super.dispose();
@@ -45,9 +59,9 @@ class _ActiveTaskCardState extends State<ActiveTaskCard> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     if (widget.task == null) return const SizedBox.shrink();
-    
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
       padding: EdgeInsets.all(16.w),
@@ -72,7 +86,7 @@ class _ActiveTaskCardState extends State<ActiveTaskCard> with SingleTickerProvid
                   borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: Icon(
-                  Icons.hourglass_top,
+                  widget.message == null ? Icons.hourglass_top : Icons.info,
                   color: AppColors.primary,
                   size: 18.sp,
                 ),
@@ -80,7 +94,9 @@ class _ActiveTaskCardState extends State<ActiveTaskCard> with SingleTickerProvid
               SizedBox(width: 12.w),
               Expanded(
                 child: Text(
-                  widget.task!.message,
+                  widget.message != null
+                      ? widget.message!
+                      : widget.task!.message,
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
@@ -88,18 +104,18 @@ class _ActiveTaskCardState extends State<ActiveTaskCard> with SingleTickerProvid
                   ),
                 ),
               ),
-              GestureDetector(
-                onTap: widget.onCancel,
-                child: Icon(
-                  Icons.close,
-                  color: AppColors.textTertiary,
-                  size: 18.sp,
-                ),
-              ),
+              // GestureDetector(
+              //   onTap: widget.onCancel,
+              //   child: Icon(
+              //     Icons.close,
+              //     color: AppColors.textTertiary,
+              //     size: 18.sp,
+              //   ),
+              // ),
             ],
           ),
           SizedBox(height: 12.h),
-          
+
           // Animated Gradient Circular Progress
           Row(
             children: [
@@ -111,13 +127,15 @@ class _ActiveTaskCardState extends State<ActiveTaskCard> with SingleTickerProvid
                     child: SizedBox(
                       width: 70.w,
                       height: 70.w,
-                      child: _buildGradientCircularProgress(widget.task!.progress),
+                      child: _buildGradientCircularProgress(
+                        widget.task!.progress,
+                      ),
                     ),
                   );
                 },
               ),
               SizedBox(width: 16.w),
-              
+
               // Progress Details
               Expanded(
                 child: Column(
@@ -131,17 +149,23 @@ class _ActiveTaskCardState extends State<ActiveTaskCard> with SingleTickerProvid
                       ),
                     ),
                     SizedBox(height: 4.h),
-                    Text(
-                      '${widget.task!.progress}% Complete',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: Text(
+                        '${widget.task!.progress}% Complete',
+                        key: ValueKey(widget.task!.progress),
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      '${_getRemainingTime(widget.task!.progress)}',
+                      widget.message == null
+                          ? _getRemainingTime(widget.task!.progress)
+                          : "",
                       style: TextStyle(
                         fontSize: 10.sp,
                         color: AppColors.textSecondary,
@@ -159,10 +183,15 @@ class _ActiveTaskCardState extends State<ActiveTaskCard> with SingleTickerProvid
 
   Widget _buildGradientCircularProgress(int progress) {
     return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0, end: progress / 100),
-      duration: const Duration(milliseconds: 800),
+      tween: Tween<double>(begin: _previousProgress / 100, end: progress / 100),
+      duration: const Duration(milliseconds: 500),
       curve: Curves.easeOutCubic,
       builder: (context, double value, child) {
+        // Update previous progress when animation completes
+        if (value >= progress / 100 && progress != _previousProgress) {
+          _previousProgress = progress.toDouble();
+        }
+
         return CustomPaint(
           painter: GradientCircularProgressPainter(
             progress: value,
@@ -174,13 +203,19 @@ class _ActiveTaskCardState extends State<ActiveTaskCard> with SingleTickerProvid
             strokeWidth: 6.w,
           ),
           child: Center(
-            child: Text(
-              '${(value * 100).toInt()}%',
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
+            child: TweenAnimationBuilder(
+              tween: IntTween(begin: 0, end: progress),
+              duration: const Duration(milliseconds: 500),
+              builder: (context, int value, child) {
+                return Text(
+                  '$value%',
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                );
+              },
             ),
           ),
         );
@@ -191,7 +226,6 @@ class _ActiveTaskCardState extends State<ActiveTaskCard> with SingleTickerProvid
   String _getRemainingTime(int progress) {
     if (progress >= 100) return 'Complete!';
     final remaining = 100 - progress;
-    // Assuming total task takes about 60 seconds
     final estimatedSeconds = (remaining * 0.6).toInt();
     if (estimatedSeconds < 60) {
       return '~$estimatedSeconds seconds remaining';
@@ -219,14 +253,14 @@ class GradientCircularProgressPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (size.width - strokeWidth) / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
-    
+
     // Background circle
     final backgroundPaint = Paint()
       ..color = Colors.grey.withOpacity(0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
     canvas.drawCircle(center, radius, backgroundPaint);
-    
+
     // Gradient for progress
     final gradient = SweepGradient(
       center: Alignment.center,
@@ -234,21 +268,15 @@ class GradientCircularProgressPainter extends CustomPainter {
       stops: const [0.0, 0.5, 1.0],
       transform: GradientRotation(-math.pi / 2),
     );
-    
+
     final progressPaint = Paint()
       ..shader = gradient.createShader(rect)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
-    
+
     final sweepAngle = 2 * math.pi * progress;
-    canvas.drawArc(
-      rect,
-      -math.pi / 2,
-      sweepAngle,
-      false,
-      progressPaint,
-    );
+    canvas.drawArc(rect, -math.pi / 2, sweepAngle, false, progressPaint);
   }
 
   @override
