@@ -11,7 +11,8 @@ class CustomResponseSchemas(BaseModel, Generic[T]):
     data: Optional[T] = Field(default=None, description="Response data")
     success: bool = Field(default=True, description="Indicates if request was successful")
     error_code: Optional[str] = Field(default=None, description="Error code if any")
-
+    timestamp: datetime = Field(default_factory=datetime.now, description="Response timestamp")
+    
     class Config:
         json_schema_extra = {
             "example": {
@@ -20,6 +21,7 @@ class CustomResponseSchemas(BaseModel, Generic[T]):
                 "data": None,
                 "success": True,
                 "error_code": None,
+                "timestamp": "2024-01-01T00:00:00"
             }
         }
     
@@ -45,3 +47,9 @@ class CustomResponseSchemas(BaseModel, Generic[T]):
             error_code=error_code
         )
     
+    def dict(self, *args, **kwargs):
+        """Override dict to handle datetime serialization"""
+        data = super().dict(*args, **kwargs)
+        if isinstance(data.get('timestamp'), datetime):
+            data['timestamp'] = data['timestamp'].isoformat()
+        return data

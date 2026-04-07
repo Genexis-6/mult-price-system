@@ -16,6 +16,8 @@ broker = RedisStreamBroker(
 # Result backend
 result_backend = RedisAsyncResultBackend(
     redis_url=settings.REDIS_BACKEND_URL,
+    keep_results=True,
+    result_ex_time= 172800
 )
 
 

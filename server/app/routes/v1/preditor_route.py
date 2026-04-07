@@ -43,6 +43,33 @@ async def predict_product(q: PredictQerySchemas):
     
       
 
+@pred.get("/status/{job_id}")
+async def get_task_status(job_id: str):
+    try:
+        from worker.main import result_backend  # wherever you defined it
+        
+        result = await result_backend.get_result(job_id)
+        
+        # logger.debug(result)
+
+        if result is None:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        return CustomResponseSchemas.success_response(
+            data={
+                "job_id": job_id,
+                # "status": result.status.name,  # e.g. PENDING, SUCCESS, FAILED
+                "result": result.return_value if not result.is_err else None
+            },
+            message="Task status retrieved",
+            status_code=200
+        )
+
+    except Exception as e:
+        logger.error(f"Error checking task status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
 @pred.websocket("/ws/{job_id}")
 async def websocket_endpoint(websocket: WebSocket, job_id: str):
     """WebSocket endpoint for real-time updates"""
@@ -60,8 +87,7 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str):
         manager.disconnect(job_id)
     except Exception as e:
         logger.error(f"WebSocket error for {job_id}: {e}")
-        manager.disconnect(job_id)
-        
+        manager.disconnect(job_id)    
         
         
 

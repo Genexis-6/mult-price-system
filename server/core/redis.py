@@ -28,3 +28,6 @@ async def close_redis():
 
 async def get_redis():
     return redis
+
+
+

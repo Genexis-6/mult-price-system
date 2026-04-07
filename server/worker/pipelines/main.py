@@ -38,8 +38,21 @@ logger = get_logger(__name__)
 
 # ── Layer 1: ETL ──────────────────────────────────────────────────────────────
 
-async def run_etl_layer(query: str, pages: int = 2) -> dict:
+async def run_etl_layer(
+    query: str, 
+    pages: int = 2, 
+    redis: redis.Redis = None,
+    task_id: Optional[str] = None
+) -> dict:
     """Run all 3 ETLs concurrently. Returns row counts per platform."""
+    
+    # Publish ETL start
+    await publish_redis_job(redis, RedisPublishSchemas(
+        task_id=task_id,
+        progress=5,
+        message=f"Getting {query} information from Jumia, Konga, and Jiji..."
+    ))
+    
     etls = {
         "jumia": JumiaETL(),
         "konga": KongaETL(),
@@ -52,14 +65,32 @@ async def run_etl_layer(query: str, pages: int = 2) -> dict:
     }
 
     results = {}
+    completed = 0
+    total_platforms = len(etls)
+    
     for name, task in tasks.items():
         try:
-            count         = await task
+            count = await task
             results[name] = count
+            completed += 1
+            
+            # Publish progress for each completed platform
+            progress = 5 + (completed * 5)  # 10%, 15%, 20%
+            await publish_redis_job(redis, RedisPublishSchemas(
+                task_id=task_id,
+                progress=progress,
+                message=f"✓ Scraped {count} products from {name.upper()}"
+            ))
             logger.info(f"✓ {name}: {count} products loaded")
+            
         except Exception as e:
             results[name] = 0
             logger.error(f"✗ {name}: failed — {e}")
+            await publish_redis_job(redis, RedisPublishSchemas(
+                task_id=task_id,
+                progress=5 + (completed * 5),
+                message=f"⚠️ Failed to scrape from {name.upper()}: {str(e)[:50]}"
+            ))
 
     return results
 
@@ -67,12 +98,11 @@ async def run_etl_layer(query: str, pages: int = 2) -> dict:
 # ── Full pipeline ─────────────────────────────────────────────────────────────
 
 async def run_full_pipeline(
-    
     query: str,
     pages: int = 2,
-    mode:  Optional[Literal["train_model", "predict"]] = "train_model",
+    mode: Optional[Literal["train_model", "predict"]] = "predict",
     redis: redis.Redis = None,
-    task_id:Optional[str] = None
+    task_id: Optional[str] = None
     
 ) -> list[dict]:
     """
@@ -87,32 +117,36 @@ async def run_full_pipeline(
     Returns:
         Ranked list of product recommendation dicts.
     """
-    # logger.info(f"=== Pipeline START | query='{query}' | mode={mode} ===")
+    logger.info(f"=== Pipeline START | query='{query}' | mode={mode} ===")
 
-    # # ── Layer 1: ETL ──────────────────────────────────────────────────────────
-    # etl_results   = await run_etl_layer(query, pages)
-    # total_scraped = sum(etl_results.values())
-    # logger.info(f"Layer 1 ✓ ETL: {etl_results} | total={total_scraped}")
-
-    # if total_scraped == 0:
-    #     logger.error("No products scraped — aborting pipeline.")
-    #     return []
-    
-    # if etl_results:
-    #     await publish_redis_job(redis, RedisPublishSchemas(
-    #         task_id=task_id,
-    #         progress=10,
-    #         message="Matching similar products across platforms..."
-    #     ))
-        
-        
+    # ── Layer 1: ETL ──────────────────────────────────────────────────────────
     await publish_redis_job(redis, RedisPublishSchemas(
+        task_id=task_id,
+        progress=5,
+        message="Starting ETL process..."
+    ))
+    
+    etl_results = await run_etl_layer(query, pages, redis, task_id)
+    total_scraped = sum(etl_results.values())
+    logger.info(f"Layer 1 ✓ ETL: {etl_results} | total={total_scraped}")
+
+    if total_scraped == 0:
+        logger.error("No products scraped — aborting pipeline.")
+        await publish_redis_job(redis, RedisPublishSchemas(
             task_id=task_id,
-            progress=10,
-            message="Matching similar products across platforms..."
+            progress=0,
+            message="No products found. Please try a different search term.",
+            status=TaskResults.FAILED
         ))
-        
+        return []
+    
     # ── Layer 2: Fusion (merge + dedup, no normalization yet) ─────────────────
+    await publish_redis_job(redis, RedisPublishSchemas(
+        task_id=task_id,
+        progress=20,
+        message="Matching similar products across platforms..."
+    ))
+    
     df = await merge_platforms(query)
     if df.empty:
         logger.error("Fusion returned empty DataFrame — aborting.")
@@ -123,54 +157,81 @@ async def run_full_pipeline(
         f"Layer 2 ✓ Fusion: {len(df)} listings | "
         f"{int(df['is_duplicate'].sum())} cross-platform duplicates flagged"
     )
-    if df is not None and not df.empty:
-        await publish_redis_job(redis, RedisPublishSchemas(
-            task_id=task_id,
-            progress=30,
-            message="Analyzing customer reviews..."
-        ))
+    
+    await publish_redis_job(redis, RedisPublishSchemas(
+        task_id=task_id,
+        progress=30,
+        message=f"Found {len(df)} products across platforms"
+    ))
 
     # ── Layer 3: Sentiment ─────────────────────────────────────────────────────
-    # Self-contained: fetches from DB, runs inference, writes scores back to DB.
+    await publish_redis_job(redis, RedisPublishSchemas(
+        task_id=task_id,
+        progress=40,
+        message="Analyzing customer reviews for sentiment..."
+    ))
+    
     await run_sentiment()
     logger.info("Layer 3 ✓ Sentiment: scores written to DB")
 
     # ── Layer 4: Reload with sentiment scores ──────────────────────────────────
-    # Re-merge so the DataFrame has the freshly written sentiment_score values.
-
+    await publish_redis_job(redis, RedisPublishSchemas(
+        task_id=task_id,
+        progress=50,
+        message="Processing sentiment scores..."
+    ))
     
     df = await merge_platforms(query)
     if df.empty:
         logger.warning(f"Layer 4 ✗ No data found for query='{query}' after reload")
         return []
 
+    sentiment_count = df['sentiment_score'].notna().sum()
     logger.info(
-        f"Layer 4 ✓ Reload: {df['sentiment_score'].notna().sum()}/{len(df)} "
+        f"Layer 4 ✓ Reload: {sentiment_count}/{len(df)} "
         f"listings have sentiment scores"
     )
-    if df is not None and not df.empty:
-        await publish_redis_job(redis, RedisPublishSchemas(
-            task_id=task_id,
-            progress=50,
-            message="Preparing data for ranking..."
-        ))
+    
+    await publish_redis_job(redis, RedisPublishSchemas(
+        task_id=task_id,
+        progress=55,
+        message=f"Analyzed sentiment for {sentiment_count} products"
+    ))
 
     # ── Layer 5: Normalize ─────────────────────────────────────────────────────
+    await publish_redis_job(redis, RedisPublishSchemas(
+        task_id=task_id,
+        progress=60,
+        message="Normalizing product data..."
+    ))
+    
     df, norm_stats = normalize(df)
     logger.info(f"Layer 5 ✓ Normalize: {list(norm_stats.keys())}")
 
     # Persist enriched fused DataFrame to fused_products table
     await save_fused(df, query)
-    if df is not None and not df.empty:
-        await publish_redis_job(redis, RedisPublishSchemas(
-            task_id=task_id,
-            progress=70,
-            message="Ranking the best products..."
-        ))
+    
+    await publish_redis_job(redis, RedisPublishSchemas(
+        task_id=task_id,
+        progress=70,
+        message="Preparing data for ranking..."
+    ))
 
     # ── Layer 6: ML ────────────────────────────────────────────────────────────
+    await publish_redis_job(redis, RedisPublishSchemas(
+        task_id=task_id,
+        progress=80,
+        message="Generating product recommendations..."
+    ))
+    
     recommendations = await run_ml(df, query, mode=mode)
     logger.info(f"Layer 6 ✓ ML: {len(recommendations)} recommendations | mode={mode}")
+
+    await publish_redis_job(redis, RedisPublishSchemas(
+        task_id=task_id,
+        progress=90,
+        message=f"Found {len(recommendations)} top recommendations"
+    ))
 
     logger.info(f"=== Pipeline END | query='{query}' ===")
     return recommendations

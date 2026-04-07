@@ -32,7 +32,7 @@ async def train_model(t: TrainModelQuerySchemas):
         task = await pipeline_task_handler.kiq(
             t.query,
             "train_model",
-            1,
+            t.page,
         )
 
         job_id = task.task_id

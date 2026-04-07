@@ -4,6 +4,7 @@ from core.store import db_session_manager
 from core.utils import get_logger
 from core.redis import init_redis, close_redis
 from .routes.v1 import v1
+from app.websocket.manager import init_websocket_manager
 from fastapi.middleware.cors import CORSMiddleware
 logger = get_logger("app")
 
@@ -13,6 +14,7 @@ async def lifespan(app):
     logger.debug("app starting.....")
     await db_session_manager.start()
     await init_redis()
+    await  init_websocket_manager()  
     yield 
     await db_session_manager.start()
     await close_redis()
