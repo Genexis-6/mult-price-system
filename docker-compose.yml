@@ -19,24 +19,22 @@ services:
     volumes:
       - postgres_data:/var/lib/posgresql/data
 
-
-
   redis:
     container_name: redis_broker
-    image: redis:7.4-alpine
+    image: redis/redis-stack:7.2.0-v8 
     restart: always
     ports:
       - "6379:6379"
+      - "8001:8001"  
+    environment:
+      - REDIS_ARGS=--appendonly yes --protected-mode no
     volumes:
       - redis_data:/data
-
-    command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-
 
     
 volumes:

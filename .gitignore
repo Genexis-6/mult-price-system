@@ -5,3 +5,6 @@ venv
 logs
 *test/
 *results/
+*.g.dart
+*.freezed.dart
+*keys/

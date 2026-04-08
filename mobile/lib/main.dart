@@ -12,15 +12,22 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ScreenUtil.ensureScreenSize();
 
+  // Initialize Firebase
   await Firebase.initializeApp(
-     options: DefaultFirebaseOptions.currentPlatform
-  );  
+    options: DefaultFirebaseOptions.currentPlatform
+  );
+  
   GoogleFonts.config.allowRuntimeFetching = true;
+  
+  // Initialize storage
   final pref = await InitaMain.initStorage();
+  
   runApp(
     ProviderScope(
-      overrides: [sharedPreferenceProvider.overrideWithValue(pref)],
-      child: MulaSearch(),
+      overrides: [
+        sharedPreferenceProvider.overrideWithValue(pref),
+      ],
+      child: const MulaSearch(),
     ),
   );
 }

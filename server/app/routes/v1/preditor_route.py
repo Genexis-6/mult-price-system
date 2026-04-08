@@ -2,6 +2,7 @@
 from datetime import datetime
 import uuid
 import json
+from core.notification.notification_handler import send_push, notification_service
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 
@@ -14,7 +15,52 @@ from worker.tasks import pipeline_task_handler
 
 logger = get_logger(__name__)
 
-pred = APIRouter(tags=["predict"], prefix="/predict")
+pred = APIRouter(tags=["predict"], prefix="/predict", 
+                 responses={
+        404: {
+            "message":"not found"
+        },
+        500:{
+            "message":"server error"
+        }
+    })
+
+
+
+
+@pred.get("/test-notification")
+async def test_notification():
+    """Test endpoint for push notifications"""
+    try:
+        # Get a valid FCM token from your database or request
+        test_token = "fdgiAUhATrK-SiPOpzVQwv:APA91bEc_9Rv8pYB5YQvKZyk4k34BRA3wP3c5ngh4fcb4yqbIrS-Tzk3YiirUGFQAvwtP5eKRfoTsoTXadAqCXDtrpFlJxHtHeac3nwEi_rw6SWPFRAonmU"
+        
+        result = notification_service.send_notification(
+            token=test_token,
+            title="Test Notification",
+            body="This is a test message from the server!",
+            data={"type": "test", "timestamp": "now"}
+        )
+        
+        if "error" not in result:
+            return CustomResponseSchemas.success_response(
+                data=result,
+                message="Push notification sent successfully",
+                status_code=200
+            )
+        else:
+            return CustomResponseSchemas.error_response(
+                message=f"Failed to send notification: {result.get('error', 'Unknown error')}",
+                status_code=500
+            )
+    except Exception as e:
+        logger.error(f"Error in test notification: {e}")
+        return CustomResponseSchemas.error_response(
+            message=str(e),
+            status_code=500
+        )
+
+
 
 @pred.post("/")
 async def predict_product(q: PredictQerySchemas):
