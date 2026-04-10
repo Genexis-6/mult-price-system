@@ -10,7 +10,10 @@ from core.utils import get_logger
 from .helper import publish_redis_job
 from core.schemas import RedisPublishSchemas
 from .main import broker
+from core.store import db_session_manager
+from core.notification.notification_handler import notification_service
 from core.store.queries import RedisQuery
+from core.store.queries import DeviceQueries
 
 logger = get_logger(__name__)
 
@@ -48,7 +51,6 @@ async def pipeline_task_handler(
             result=None,
             message=f"Processing query: {query}"
         ))
-                
         if mode == "predict":
             redis_query = RedisQuery(redis_client)
             await redis_query.create_index()
@@ -86,6 +88,7 @@ async def pipeline_task_handler(
                         status=TaskResults.COMPLETED.value,
                         result=parsed[0]["data"]
                     ))
+                    await push_notification_handler(task_id)
                     return parsed[0]["data"]
 
         from worker.pipelines import run_full_pipeline
@@ -107,6 +110,9 @@ async def pipeline_task_handler(
         ))
         if mode == "predict":
             await redis_query.store_result(query, result)
+        
+        await push_notification_handler(task_id)
+
         return result
     
 
@@ -124,3 +130,22 @@ async def pipeline_task_handler(
     
     
 # taskiq worker worker.main:broker --workers 8 --log-level INFO
+
+
+
+
+async def push_notification_handler(task_id: str):
+    async with db_session_manager.session() as session:
+        device_queries = DeviceQueries(session)
+        if task_id is not None:
+            device_res = await device_queries.get_task_by_id(task_id)
+            if device_res is not None:
+                notification_service.send_notification(
+                    token=device_res.fcm_token,
+                    title="Results Ready 🎉",
+                    body="Your product analysis is complete. Tap to view your results.",
+                    data={
+                        "type": "prediction_complete",
+                        "task_id": task_id
+                    }
+                )

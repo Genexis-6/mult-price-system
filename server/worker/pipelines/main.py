@@ -126,19 +126,19 @@ async def run_full_pipeline(
         message="Starting ETL process..."
     ))
     
-    etl_results = await run_etl_layer(query, pages, redis, task_id)
-    total_scraped = sum(etl_results.values())
-    logger.info(f"Layer 1 ✓ ETL: {etl_results} | total={total_scraped}")
+    # etl_results = await run_etl_layer(query, pages, redis, task_id)
+    # total_scraped = sum(etl_results.values())
+    # logger.info(f"Layer 1 ✓ ETL: {etl_results} | total={total_scraped}")
 
-    if total_scraped == 0:
-        logger.error("No products scraped — aborting pipeline.")
-        await publish_redis_job(redis, RedisPublishSchemas(
-            task_id=task_id,
-            progress=0,
-            message="No products found. Please try a different search term.",
-            status=TaskResults.FAILED
-        ))
-        return []
+    # if total_scraped == 0:
+    #     logger.error("No products scraped — aborting pipeline.")
+    #     await publish_redis_job(redis, RedisPublishSchemas(
+    #         task_id=task_id,
+    #         progress=0,
+    #         message="No products found. Please try a different search term.",
+    #         status=TaskResults.FAILED
+    #     ))
+    #     return []
     
     # ── Layer 2: Fusion (merge + dedup, no normalization yet) ─────────────────
     await publish_redis_job(redis, RedisPublishSchemas(

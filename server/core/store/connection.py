@@ -19,7 +19,7 @@ class DbSessionManager:
             bind=self._engin,
             autoflush=True, 
             class_=AsyncSession, 
-            expire_on_commit=True
+            expire_on_commit=False
         )
         
     
