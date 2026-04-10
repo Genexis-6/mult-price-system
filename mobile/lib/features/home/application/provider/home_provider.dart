@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/share/application/provider/app_state_provider.dart';
 import 'package:mobile/core/share/application/provider/repo_provider.dart';
 import 'package:mobile/core/share/data/model/response_model.dart';
 import 'package:mobile/core/share/data/repo/storage_service.dart';
@@ -60,6 +61,7 @@ class HomeProvider extends AsyncNotifier<HomeState> {
       if (response.success && response.data != null) {
         final taskId = response.data['job_id'] as String;
 
+        ref.read(appStateProvider.notifier).storeDeviceTask(taskId);
         await _storageService.saveLastTask(taskId, query);
 
         // Update to taskCreated state - this will show the skeleton
