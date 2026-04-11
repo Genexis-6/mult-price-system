@@ -61,15 +61,15 @@ class AppStateProvider extends AsyncNotifier<AppState> {
       }
 
       if (permissionStatus.isGranted) {
-        logger.d("✅ Notification permission granted");
+        logger.d("Notification permission granted");
 
         // Get FCM token (works for both Android and iOS)
         String? token = await FirebaseMessaging.instance.getToken();
-        logger.d("✅ FCM Token obtained: ${token?.substring(0, 20)}...");
+        logger.d("FCM Token obtained: ${token?.substring(0, 20)}...");
 
         // Listen for token refresh
         FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-          logger.d("🔄 FCM Token refreshed: ${newToken.substring(0, 20)}...");
+          logger.d("FCM Token refreshed: ${newToken.substring(0, 20)}...");
           _handleTokenRefresh(newToken);
         });
 

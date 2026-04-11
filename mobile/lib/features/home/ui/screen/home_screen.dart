@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import 'package:flutter_screenutil.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mobile/features/home/application/state/home_state.dart';
+import 'package:mobile/features/home/application/provider/recent_searches_provider.dart';
+// import 'package:mobile/features/home/application/state/home_state.dart';
 // import 'package:mobile/core/share/application/provider/repo_provider.dart';
 import 'package:mobile/features/home/data/model/task_status_model.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -15,7 +16,9 @@ import 'package:mobile/features/home/application/provider/home_provider.dart';
 import 'package:mobile/features/home/data/model/dummy_data.dart';
 import 'package:mobile/features/home/data/model/news_model.dart';
 import 'package:mobile/features/home/ui/widgets/widgets.dart';
+import '../../../../core/share/application/provider/news_provider.dart';
 import '../../../../core/share/ui/widgets/custom_app_bar.dart';
+import '../../../../core/share/ui/widgets/widget.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -81,10 +84,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         showProgress: true,
                       ),
                       reconnecting: (taskId, query) =>
-                          _buildSkeletonActiveTaskCard(
-                            message: "Reconnecting to task...",
-                            showProgress: true,
-                          ),
+                          ReconnectionBanner(taskId: taskId, query: query),
                       taskCreated: (taskId, query) =>
                           _buildSkeletonActiveTaskCard(
                             message: "Task created, waiting for updates...",
@@ -137,14 +137,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   error: (error, _) => _buildErrorCard(error.toString()),
                 ),
 
-                NewsCarousel(
-                  newsList: DummyData.getNews(),
-                  onNewsTap: _handleNewsTap,
+                Consumer(
+                  builder: (context, ref, child) {
+                    final newsAsync = ref.watch(topHeadlinesProvider);
+
+                    return newsAsync.when(
+                      data: (newsList) {
+                        if (newsList.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return NewsCarousel(
+                          newsList: newsList,
+                          onNewsTap: _handleNewsTap,
+                        );
+                      },
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                      error: (error, stack) => const SizedBox.shrink(),
+                    );
+                  },
                 ),
-                RecentSearchesChips(
-                  searches: DummyData.getRecentSearches(),
-                  onSearchTap: _handleRecentSearchTap,
-                ),
+                RecentSearchesWidget(onSearchTap: _handleRecentSearchTap),
                 SizedBox(height: 20.h),
               ]),
             ),
@@ -174,7 +191,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           timestamp: DateTime.now(),
         ),
         // onCancel: () {},
-        message: message,
+        // message: message,
       ),
     );
   }
@@ -265,7 +282,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     homeState.when(
       data: (state) {
-        // Check if task is processing
         isTaskProcessing = state.maybeWhen(
           taskProcessing: (_, _, _, _) => true,
           orElse: () => false,
@@ -286,15 +302,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     try {
       setState(() => _isLoading = true);
       var res = await ref.read(homeProvider.notifier).predict(query: query);
+
+      // Add to recent searches when search is successful
+      if (res.success) {
+        final resultCount = res.data?['result']?.length ?? 0;
+        ref
+            .read(recentSearchesProvider.notifier)
+            .addRecentSearch(query, resultCount: resultCount);
+      }
+
       // ignore: use_build_context_synchronously
       CustomSnackbar.info(context: context, message: res.message);
     } finally {
       setState(() => _isLoading = false);
     }
-  }
-
-  void _cancelTask() {
-    ref.read(homeProvider.notifier).cancelTask();
   }
 
   void _handleNewsTap(News news) {

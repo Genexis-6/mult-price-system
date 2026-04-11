@@ -16,28 +16,22 @@ class WebSocketService {
 
   bool _isConnected = false;
   bool _isManuallyClosed = false;
+  bool _preventReconnect = false;
   int _reconnectAttempts = 0;
-  static const int maxReconnectAttempts = 5;
+  static const int maxReconnectAttempts = 3;
 
   WebSocketService({required this.baseUrl});
+
   Stream<TaskStatus> connect(String taskId) {
     _disconnectInternal();
 
     _reconnectAttempts = 0;
+    _preventReconnect = false;
     final wsUrl = Uri.parse('$baseUrl/v1/predict/ws/$taskId');
     print('🔌 Connecting to WebSocket: $wsUrl');
+    print('📡 Task ID for WebSocket: $taskId');
 
     _controller = StreamController<TaskStatus>.broadcast();
-
-    // Set a timeout for connection
-    Timer? connectionTimeout;
-    connectionTimeout = Timer(const Duration(seconds: 3), () {
-      if (!_isConnected && !_isManuallyClosed) {
-        print('⚠️ WebSocket connection timeout, but continuing...');
-        // Don't fail, just continue - messages might still come through
-        connectionTimeout?.cancel();
-      }
-    });
 
     try {
       _channel = IOWebSocketChannel.connect(wsUrl);
@@ -45,13 +39,22 @@ class WebSocketService {
 
       _subscription = _channel!.stream.listen(
         (data) {
-          connectionTimeout?.cancel();
           _reconnectAttempts = 0;
           _isConnected = true;
+          print('✅ WebSocket connected and receiving data');
           print('📨 WebSocket message received: $data');
 
           try {
-            final jsonData = jsonDecode(data.toString());
+            final Map<String, dynamic> jsonData;
+            if (data is String) {
+              jsonData = jsonDecode(data);
+            } else if (data is Map) {
+              jsonData = Map<String, dynamic>.from(data);
+            } else {
+              print('❌ Unknown data type: ${data.runtimeType}');
+              return;
+            }
+
             final taskStatus = TaskStatus(
               taskId: jsonData['task_id'] ?? taskId,
               status: jsonData['status'] ?? 'processing',
@@ -61,20 +64,8 @@ class WebSocketService {
               result: jsonData['result'],
             );
 
-            print(
-              '✅ Parsed TaskStatus: status=${taskStatus.status}, progress=${taskStatus.progress}',
-            );
+            print('✅ Parsed TaskStatus: status=${taskStatus.status}, progress=${taskStatus.progress}, message=${taskStatus.message}');
             _controller?.add(taskStatus);
-
-            // If completed, close connection after a short delay
-            if (taskStatus.progress >= 100 ||
-                taskStatus.status.toLowerCase() == 'completed') {
-              Future.delayed(const Duration(seconds: 2), () {
-                if (!_isManuallyClosed) {
-                  disconnect();
-                }
-              });
-            }
           } catch (e) {
             print('❌ Error parsing message: $e');
           }
@@ -82,16 +73,14 @@ class WebSocketService {
         onError: (error) {
           print('❌ WebSocket error: $error');
           _isConnected = false;
-          connectionTimeout?.cancel();
-          if (!_isManuallyClosed) {
+          if (!_isManuallyClosed && !_preventReconnect) {
             _scheduleReconnect(taskId);
           }
         },
         onDone: () {
           print('⚠️ WebSocket closed');
           _isConnected = false;
-          connectionTimeout?.cancel();
-          if (!_isManuallyClosed) {
+          if (!_isManuallyClosed && !_preventReconnect) {
             _scheduleReconnect(taskId);
           }
         },
@@ -100,12 +89,17 @@ class WebSocketService {
       _startPing();
     } catch (e) {
       print('❌ Connection failed: $e');
-      connectionTimeout.cancel();
-      _controller?.addError(e);
-      _scheduleReconnect(taskId);
+      if (!_isManuallyClosed && !_preventReconnect) {
+        _scheduleReconnect(taskId);
+      }
     }
 
     return _controller!.stream;
+  }
+
+  void preventReconnect() {
+    _preventReconnect = true;
+    _isManuallyClosed = true;
   }
 
   void _startPing() {
@@ -113,7 +107,7 @@ class WebSocketService {
     _pingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (_isConnected && _channel != null) {
         try {
-          _channel!.sink.add(jsonEncode({"type": "ping"}));
+          _channel!.sink.add('ping');
           print('💓 Ping sent');
         } catch (e) {
           print('❌ Failed to send ping: $e');
@@ -124,26 +118,21 @@ class WebSocketService {
   }
 
   void _scheduleReconnect(String taskId) {
-    if (_isManuallyClosed) return;
+    if (_isManuallyClosed || _preventReconnect) return;
 
     if (_reconnectAttempts >= maxReconnectAttempts) {
       print('❌ Max reconnect attempts reached. Giving up.');
-      _controller?.addError(
-        'Connection failed after $maxReconnectAttempts attempts',
-      );
       _controller?.close();
       return;
     }
 
     _reconnectAttempts++;
     final delay = Duration(seconds: _reconnectAttempts * 2);
-    print(
-      '🔄 Reconnecting in ${delay.inSeconds}s (attempt $_reconnectAttempts/$maxReconnectAttempts)...',
-    );
+    print('🔄 Reconnecting in ${delay.inSeconds}s (attempt $_reconnectAttempts/$maxReconnectAttempts)...');
 
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(delay, () {
-      if (!_isManuallyClosed) {
+      if (!_isManuallyClosed && !_preventReconnect) {
         connect(taskId);
       }
     });
@@ -151,6 +140,7 @@ class WebSocketService {
 
   void disconnect() {
     _isManuallyClosed = true;
+    _preventReconnect = true;
     _reconnectTimer?.cancel();
     _disconnectInternal();
     _controller?.close();

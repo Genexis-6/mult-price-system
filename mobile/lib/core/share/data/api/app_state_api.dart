@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:mobile/core/share/data/model/response_model.dart';
 import 'package:mobile/core/utils/api_exception_handler.dart';
 
+import '../model/notification_payload.dart';
+
 class AppStateApi {
   final Dio _api;
 
@@ -33,6 +35,21 @@ class AppStateApi {
         "fcm_token": fcmToken,
         "task_id": taskId,
       });
+      return CustomResponse.fromJson(res.data);
+    } on DioException catch (e) {
+      return ApiExceptionHandler.handleDioException(e);
+    } catch (e) {
+      return CustomResponse.error(
+        message: 'An unexpected error occurred: ${e.toString()}',
+        errorCode: 'UNEXPECTED_ERROR',
+        statusCode: 500,
+      );
+    }
+  }
+
+   Future<CustomResponse> sendNotification(NotificationPayload payload) async {
+    try {
+      final res = await _api.post("/device/notify", data: payload.toJson());
       return CustomResponse.fromJson(res.data);
     } on DioException catch (e) {
       return ApiExceptionHandler.handleDioException(e);

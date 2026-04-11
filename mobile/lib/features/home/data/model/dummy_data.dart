@@ -1,7 +1,5 @@
-import 'package:mobile/core/share/data/model/product_model.dart';
+
 import 'package:mobile/features/home/data/model/news_model.dart';
-import 'package:mobile/features/home/data/model/recent_search_model.dart';
-import 'package:mobile/features/home/data/model/task_status_model.dart';
 
 
 class DummyData {
@@ -42,33 +40,7 @@ class DummyData {
     ];
   }
 
-  static List<RecentSearch> getRecentSearches() {
-    return [
-      RecentSearch(query: 'iPhone 15 Pro Max', timestamp: DateTime.now(), resultCount: 156),
-      RecentSearch(query: 'Samsung Galaxy S24', timestamp: DateTime.now(), resultCount: 89),
-      RecentSearch(query: 'Gaming Laptop', timestamp: DateTime.now(), resultCount: 234),
-      RecentSearch(query: 'Wireless Earbuds', timestamp: DateTime.now(), resultCount: 67),
-      RecentSearch(query: 'Smart Watch', timestamp: DateTime.now(), resultCount: 123),
-    ];
-  }
-
-  static TaskStatus getActiveTask() {
-    return TaskStatus(
-      taskId: 'task_123',
-      status: 'processing',
-      progress: 65,
-      message: 'Analyzing customer reviews and comparing prices...',
-      timestamp: DateTime.now(),
-    );
-  }
-
-
-  static Map<String, dynamic> getStats() {
-    return {
-      'totalProducts': 12500,
-      'priceAlerts': 342,
-      'activeComparisons': 12,
-      'savingsToday': 3450.50,
-    };
-  }
+ 
 }
+
+// fb4a0d4f96aec097cfb4b7c44a76b9d2

@@ -1,19 +1,22 @@
-class News {
-  final String id;
-  final String title;
-  final String content;
-  final String? imageUrl;
-  final DateTime publishedAt;
-  final NewsType type;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  News({
-    required this.id,
-    required this.title,
-    required this.content,
-    this.imageUrl,
-    required this.publishedAt,
-    required this.type,
-  });
+part 'news_model.freezed.dart';
+part 'news_model.g.dart';
+
+@freezed
+class News with _$News {
+  const factory News({
+    required String id,
+    required String title,
+    required String content,
+    String? imageUrl,
+    required DateTime publishedAt,
+    required NewsType type,
+    String? source,
+    String? url,
+  }) = _News;
+
+  factory News.fromJson(Map<String, dynamic> json) => _$NewsFromJson(json);
 }
 
 enum NewsType {

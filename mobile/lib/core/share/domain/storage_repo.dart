@@ -4,5 +4,7 @@ abstract class StorageRepo {
 
   Future<bool> delete({required String key});
 
+   List<String>? getStringList({required String key});
+
   void clear();
 }

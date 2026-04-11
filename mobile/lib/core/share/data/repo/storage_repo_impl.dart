@@ -91,8 +91,8 @@ class StorageRepoImpl extends StorageRepo {
   bool? getBool({required String key}) {
     return _preferences.getBool(key);
   }
-  
 
+  @override
   List<String>? getStringList({required String key}) {
     return _preferences.getStringList(key);
   }
