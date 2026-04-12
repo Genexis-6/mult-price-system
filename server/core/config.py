@@ -35,5 +35,9 @@ class DevSettings(BaseSettings):
     REDIS_HOST:str
     REDIS_PORT:str
     
+    APP_EMAIL_SENDER:str
+    MAIL_JET_API:str
+    MAIL_JET_SK:str
+    
 
 settings = DevSettings()

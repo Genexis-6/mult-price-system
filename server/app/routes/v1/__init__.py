@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from .preditor_route import pred
 from .train_route import trainer
 from .device_init_route import device_init
+from .price_tracking_route import price_tracking
 
 v1 = APIRouter(
     prefix="/v1",
@@ -19,3 +20,4 @@ v1 = APIRouter(
 v1.include_router(pred)
 v1.include_router(trainer)
 v1.include_router(device_init)
+v1.include_router(price_tracking)

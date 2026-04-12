@@ -17,7 +17,6 @@ from core.store.queries import DeviceQueries
 
 logger = get_logger(__name__)
 
-
 @broker.task(
     task_name=TaskNames.PIPELINE_TASK,
     retry_backoff=True,
@@ -37,20 +36,23 @@ async def pipeline_task_handler(
         await init_redis()
         redis_client = await get_redis()
         
-        
-
-
     try:
+        # Store initial task status
+        await redis_client.set(f"task:{task_id}:exists", "1", ex=3600)
+        await redis_client.set(f"task:{task_id}:status", "PROCESSING", ex=3600)
+        
         logger.info(f"Task {task_id} started for query: {query}")
         await publish_redis_job(redis_client, RedisPublishSchemas(
             progress=0,
             task_id=task_id,
-            # job_id=task_id,
             status=TaskResults.STARTED.value,
             mode=mode,
             result=None,
             message=f"Processing query: {query}"
         ))
+        
+        result = None  # Initialize result variable
+        
         if mode == "predict":
             redis_query = RedisQuery(redis_client)
             await redis_query.create_index()
@@ -71,6 +73,7 @@ async def pipeline_task_handler(
                 
                 if parsed:
                     logger.debug("Found similar result in Redis")
+                    result = parsed[0]["data"]  # Set result here
                     
                     # Send progress updates before final result
                     await publish_redis_job(redis_client, RedisPublishSchemas(
@@ -86,20 +89,32 @@ async def pipeline_task_handler(
                         progress=100,
                         message="Your recommendation is complete",
                         status=TaskResults.COMPLETED.value,
-                        result=parsed[0]["data"]
+                        result=result
                     ))
-                    await push_notification_handler(task_id)
-                    return parsed[0]["data"]
+                    
+                    # Store successful result
+                    await redis_client.set(f"task:{task_id}:status", "SUCCESS", ex=3600)
+                    await redis_client.set(f"task:{task_id}:result", json.dumps(result), ex=3600)
+                    
+                    # Send notification
+                    try:
+                        await push_notification_handler(task_id)
+                    except Exception as e:
+                        logger.error(f"Notification failed but task completed: {e}")
+                    
+                    return result
 
+        # Only run full pipeline if no cached results
         from worker.pipelines import run_full_pipeline
 
         result = await run_full_pipeline(
-            task_id= task_id,
+            task_id=task_id,
             query=query,
             mode=mode,
             redis=redis_client,
             pages=pages if mode == "train_model" else 1
         )
+        
         await publish_redis_job(redis_client, RedisPublishSchemas(
             task_id=task_id,
             status=TaskResults.COMPLETED.value,
@@ -108,24 +123,39 @@ async def pipeline_task_handler(
             progress=100,
             message="Your recommendation is complete"
         ))
+        
         if mode == "predict":
             await redis_query.store_result(query, result)
         
         await push_notification_handler(task_id)
+        
+        # Store successful result
+        await redis_client.set(f"task:{task_id}:status", "SUCCESS", ex=3600)
+        await redis_client.set(f"task:{task_id}:result", json.dumps(result), ex=3600)
 
         return result
-    
 
     except Exception as e:
-        await redis_client.publish(
-            f"jobs:{task_id}",
-            json.dumps({
-                "job_id": task_id,
-                "status": TaskResults.FAILED.value,
-                "error": str(e),
-            })
-        )
+        logger.error(f"Task {task_id} failed: {e}")
+        
+        # Store failure status
+        if redis_client:
+            await redis_client.set(f"task:{task_id}:status", "FAILED", ex=3600)
+            await redis_client.set(f"task:{task_id}:error", str(e), ex=3600)
+            
+            await redis_client.publish(
+                f"jobs:{task_id}",
+                json.dumps({
+                    "job_id": task_id,
+                    "status": TaskResults.FAILED.value,
+                    "error": str(e),
+                })
+            )
         raise
+    
+    
+    
+    
     
     
     
@@ -133,14 +163,18 @@ async def pipeline_task_handler(
 
 
 
-
 async def push_notification_handler(task_id: str):
-    async with db_session_manager.session() as session:
-        device_queries = DeviceQueries(session)
-        if task_id is not None:
+    """Send push notification when task completes"""
+    try:
+        async with db_session_manager.session() as session:
+            device_queries = DeviceQueries(session)
             device_res = await device_queries.get_task_by_id(task_id)
-            if device_res is not None:
-                notification_service.send_notification(
+            
+            if device_res and device_res.fcm_token:
+                logger.info(f"Sending notification for task {task_id} to device")
+                
+                # This needs to be awaited if it's async
+                result = notification_service.send_notification(
                     token=device_res.fcm_token,
                     title="Results Ready 🎉",
                     body="Your product analysis is complete. Tap to view your results.",
@@ -149,3 +183,8 @@ async def push_notification_handler(task_id: str):
                         "task_id": task_id
                     }
                 )
+                logger.info(f"Notification sent: {result}")
+            else:
+                logger.warning(f"No device found for task {task_id}")
+    except Exception as e:
+        logger.error(f"Failed to send notification for task {task_id}: {e}")

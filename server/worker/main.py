@@ -43,3 +43,4 @@ async def shutdown(state: TaskiqState):
 broker.add_event_handler("startup", startup)
 broker.add_event_handler("shutdown", shutdown)
 from worker.tasks import *
+from worker.price_checker_task import *

@@ -50,7 +50,7 @@ async def run_etl_layer(
     await publish_redis_job(redis, RedisPublishSchemas(
         task_id=task_id,
         progress=5,
-        message=f"Getting {query} information from Jumia, Konga, and Jiji..."
+        message=f"🔍 Searching for the best deals on \"{query}\"..."
     ))
     
     etls = {
@@ -66,7 +66,6 @@ async def run_etl_layer(
 
     results = {}
     completed = 0
-    total_platforms = len(etls)
     
     for name, task in tasks.items():
         try:
@@ -74,12 +73,11 @@ async def run_etl_layer(
             results[name] = count
             completed += 1
             
-            # Publish progress for each completed platform
             progress = 5 + (completed * 5)  # 10%, 15%, 20%
             await publish_redis_job(redis, RedisPublishSchemas(
                 task_id=task_id,
                 progress=progress,
-                message=f"✓ Scraped {count} products from {name.upper()}"
+                message=f"✓ Found {count} listings so far, hang tight..."
             ))
             logger.info(f"✓ {name}: {count} products loaded")
             
@@ -89,7 +87,7 @@ async def run_etl_layer(
             await publish_redis_job(redis, RedisPublishSchemas(
                 task_id=task_id,
                 progress=5 + (completed * 5),
-                message=f"⚠️ Failed to scrape from {name.upper()}: {str(e)[:50]}"
+                message=f"⚠️ Couldn't reach one of our sources, continuing with others..."
             ))
 
     return results
@@ -123,28 +121,28 @@ async def run_full_pipeline(
     await publish_redis_job(redis, RedisPublishSchemas(
         task_id=task_id,
         progress=5,
-        message="Starting ETL process..."
+        message=f"🔍 Searching for the best deals on \"{query}\"..."
     ))
     
-    # etl_results = await run_etl_layer(query, pages, redis, task_id)
-    # total_scraped = sum(etl_results.values())
-    # logger.info(f"Layer 1 ✓ ETL: {etl_results} | total={total_scraped}")
+    etl_results = await run_etl_layer(query, pages, redis, task_id)
+    total_scraped = sum(etl_results.values())
+    logger.info(f"Layer 1 ✓ ETL: {etl_results} | total={total_scraped}")
 
-    # if total_scraped == 0:
-    #     logger.error("No products scraped — aborting pipeline.")
-    #     await publish_redis_job(redis, RedisPublishSchemas(
-    #         task_id=task_id,
-    #         progress=0,
-    #         message="No products found. Please try a different search term.",
-    #         status=TaskResults.FAILED
-    #     ))
-    #     return []
+    if total_scraped == 0:
+        logger.error("No products scraped — aborting pipeline.")
+        await publish_redis_job(redis, RedisPublishSchemas(
+            task_id=task_id,
+            progress=0,
+            message=f"😕 We couldn't find anything for \"{query}\". Try a different search?",
+            status=TaskResults.FAILED
+        ))
+        return []
     
     # ── Layer 2: Fusion (merge + dedup, no normalization yet) ─────────────────
     await publish_redis_job(redis, RedisPublishSchemas(
         task_id=task_id,
         progress=20,
-        message="Matching similar products across platforms..."
+        message="🔄 Comparing prices across multiple stores..."
     ))
     
     df = await merge_platforms(query)
@@ -161,14 +159,14 @@ async def run_full_pipeline(
     await publish_redis_job(redis, RedisPublishSchemas(
         task_id=task_id,
         progress=30,
-        message=f"Found {len(df)} products across platforms"
+        message=f"📦 Found {len(df)} products — now digging into the details..."
     ))
 
     # ── Layer 3: Sentiment ─────────────────────────────────────────────────────
     await publish_redis_job(redis, RedisPublishSchemas(
         task_id=task_id,
         progress=40,
-        message="Analyzing customer reviews for sentiment..."
+        message="💬 Reading through customer reviews for you..."
     ))
     
     await run_sentiment()
@@ -178,7 +176,7 @@ async def run_full_pipeline(
     await publish_redis_job(redis, RedisPublishSchemas(
         task_id=task_id,
         progress=50,
-        message="Processing sentiment scores..."
+        message="📊 Crunching the review data..."
     ))
     
     df = await merge_platforms(query)
@@ -195,14 +193,14 @@ async def run_full_pipeline(
     await publish_redis_job(redis, RedisPublishSchemas(
         task_id=task_id,
         progress=55,
-        message=f"Analyzed sentiment for {sentiment_count} products"
+        message=f"✅ Reviewed feedback on {sentiment_count} products"
     ))
 
     # ── Layer 5: Normalize ─────────────────────────────────────────────────────
     await publish_redis_job(redis, RedisPublishSchemas(
         task_id=task_id,
         progress=60,
-        message="Normalizing product data..."
+        message="⚖️ Comparing products fairly across stores..."
     ))
     
     df, norm_stats = normalize(df)
@@ -214,14 +212,14 @@ async def run_full_pipeline(
     await publish_redis_job(redis, RedisPublishSchemas(
         task_id=task_id,
         progress=70,
-        message="Preparing data for ranking..."
+        message="🧮 Almost there, putting it all together..."
     ))
 
     # ── Layer 6: ML ────────────────────────────────────────────────────────────
     await publish_redis_job(redis, RedisPublishSchemas(
         task_id=task_id,
         progress=80,
-        message="Generating product recommendations..."
+        message=f"🤖 Picking the best options for \"{query}\"..."
     ))
     
     recommendations = await run_ml(df, query, mode=mode)
@@ -230,7 +228,7 @@ async def run_full_pipeline(
     await publish_redis_job(redis, RedisPublishSchemas(
         task_id=task_id,
         progress=90,
-        message=f"Found {len(recommendations)} top recommendations"
+        message=f"🎯 Got your top {len(recommendations)} picks ready!"
     ))
 
     logger.info(f"=== Pipeline END | query='{query}' ===")

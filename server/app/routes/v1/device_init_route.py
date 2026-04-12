@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from core.store.queries import DeviceQueries
-from core.schemas import StoreDeviceTaskIdSchemas, CustomResponseSchemas, CreateDeviceSchemas
+from core.schemas import StoreDeviceTaskIdSchemas, CustomResponseSchemas, CreateDeviceSchemas, NotificationSchemas,NotificationResponseSchemas
 from app.helpers import db_injection
 from core.utils.logger import get_logger
+from core.notification.notification_handler import notification_service
 
 logger = get_logger(__name__)
 
@@ -175,3 +176,49 @@ async def delete_device_task(db: db_injection, task_id: str):
             status_code=500,
             detail=f"Failed to delete task: {str(e)}"
         )
+
+
+
+
+@device_init.post("/notify")
+async def send_notification(payload: NotificationSchemas):
+    """
+    Send a push notification to a device
+    """
+    logger.info(f"--- Sending notification to device: {payload.fcm_token[:20]}...")
+    logger.info(f"--- Title: {payload.title}")
+    logger.info(f"---Body: {payload.body}")
+    
+    try:
+        # Send notification using the service
+        result = notification_service.send_notification(
+            token=payload.fcm_token,
+            title=payload.title,
+            body=payload.body,
+            data=payload.data if payload.data else {}
+        )
+        
+        # Check if there was an error
+        if result and "error" in result:
+            logger.error(f"---Failed to send notification: {result.get('error')}")
+            return NotificationResponseSchemas(
+                success=False,
+                message=result.get('error', 'Unknown error'),
+                data={}
+            )
+        
+        logger.info(f"---Notification sent successfully to {payload.fcm_token[:20]}...")
+        
+        return NotificationResponseSchemas(
+            success=True,
+            message="Notification sent successfully",
+            data=result if result else {}
+        )
+        
+    except Exception as e:
+        logger.error(f"---Failed to send notification: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to send notification: {str(e)}"
+        )
+

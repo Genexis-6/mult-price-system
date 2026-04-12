@@ -1,3 +1,5 @@
+from typing import Optional
+
 from redis.asyncio import from_url, Redis
 from core.config import settings
 from core.utils import get_logger
@@ -31,3 +33,22 @@ async def get_redis():
 
 
 
+async def get_r_task_status(redis, task_id: str) -> Optional[str]:
+    """
+    Returns:
+        - status string if task exists
+        - None if task does not exist
+    """
+    if redis is None:
+        return None
+        
+    exists = await redis.get(f"task:{task_id}:exists")
+    if not exists:
+        return None
+        
+    status = await redis.get(f"task:{task_id}:status")
+    if status is None:
+        return "UNKNOWN"
+    
+    # In async Redis client, values are already strings
+    return status
