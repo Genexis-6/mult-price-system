@@ -5,7 +5,7 @@ import 'package:mobile/features/home/data/model/recommendation_model.dart';
 import 'package:mobile/features/home/ui/screen/home_screen.dart';
 import 'package:mobile/features/home/ui/screen/recommendation_results_screen.dart';
 import 'package:mobile/features/settings/ui/screen/settings_screen.dart';
-import 'package:mobile/features/track/ui/screen/track_screen.dart';
+import 'package:mobile/features/track/ui/screen/price_tracking_screen.dart';
 
 import '../share/ui/widgets/main_shell_widget.dart';
 
@@ -54,7 +54,7 @@ class AppRouteUtlis {
       ],
     ),
     AppAvaliableRoute(
-      screen: const TrackScreen(),
+      screen: const PriceTrackingScreen(),
       index: 1,
       path: "/track",
       name: "Track",
