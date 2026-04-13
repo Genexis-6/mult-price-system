@@ -15,6 +15,9 @@ class CustomText extends StatelessWidget {
   final double? fontSize;
   final TextDecoration? decoration;
   final bool isColorResponsive;
+  final double? letterSpacing;
+  final double? height;
+  final FontStyle? fontStyle;
   
   const CustomText(
     this.text, {
@@ -30,6 +33,9 @@ class CustomText extends StatelessWidget {
     this.fontSize,
     this.decoration,
     this.isColorResponsive = true,
+    this.letterSpacing,
+    this.height,
+    this.fontStyle,
   });
   
   @override
@@ -158,12 +164,24 @@ class CustomText extends StatelessWidget {
       finalColor = _getDefaultColorForType();
     }
     
+    // Apply custom styling
     return baseStyle?.copyWith(
       color: finalColor,
       fontWeight: fontWeight,
       fontSize: fontSize,
       decoration: decoration,
-    ) ?? TextStyle(color: finalColor);
+      letterSpacing: letterSpacing,
+      height: height,
+      fontStyle: fontStyle,
+    ) ?? TextStyle(
+      color: finalColor,
+      fontWeight: fontWeight,
+      fontSize: fontSize,
+      decoration: decoration,
+      letterSpacing: letterSpacing,
+      height: height,
+      fontStyle: fontStyle,
+    );
   }
   
   Color _getLightModeColorForType() {

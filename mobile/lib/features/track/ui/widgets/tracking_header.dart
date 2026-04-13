@@ -6,12 +6,18 @@ import 'package:mobile/core/share/ui/widgets/custom_text.dart';
 class TrackingHeader extends StatelessWidget {
   final String userEmail;
   final int totalTrackedProducts;
+  final int activeAlerts;
+  final int triggeredAlerts;
+  final double potentialSavings;
   final VoidCallback onAddAlert;
 
   const TrackingHeader({
     super.key,
     required this.userEmail,
     required this.totalTrackedProducts,
+    required this.activeAlerts,
+    required this.triggeredAlerts,
+    required this.potentialSavings,
     required this.onAddAlert,
   });
 
@@ -130,8 +136,8 @@ class TrackingHeader extends StatelessWidget {
           Expanded(
             child: _buildStatItem(
               icon: Icons.notifications_active_rounded,
-              value: '3',
-              label: 'Active Alerts',
+              value: activeAlerts.toString(),
+              label: 'Active',
               color: Colors.orange,
               isDark: isDark,
             ),
@@ -143,9 +149,9 @@ class TrackingHeader extends StatelessWidget {
           ),
           Expanded(
             child: _buildStatItem(
-              icon: Icons.savings_rounded,
-              value: '₦245K',
-              label: 'Potential Savings',
+              icon: Icons.check_circle_rounded,
+              value: triggeredAlerts.toString(),
+              label: 'Triggered',
               color: Colors.green,
               isDark: isDark,
             ),

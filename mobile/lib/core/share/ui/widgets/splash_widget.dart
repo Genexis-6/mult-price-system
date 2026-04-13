@@ -4,12 +4,12 @@ import 'package:mobile/core/theme/app_color.dart';
 import 'package:mobile/gen/assets.gen.dart';
 
 class SplashScreen extends StatefulWidget {
-  final VoidCallback onSplashComplete;
+  final VoidCallback? onSplashComplete;
   final Duration duration;
 
   const SplashScreen({
     super.key,
-    required this.onSplashComplete,
+     this.onSplashComplete,
     this.duration = const Duration(seconds: 2),
   });
 
@@ -111,7 +111,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     // Hide splash after duration
     Future.delayed(widget.duration, () {
       if (mounted) {
-        widget.onSplashComplete();
+        widget.onSplashComplete!();
       }
     });
   }

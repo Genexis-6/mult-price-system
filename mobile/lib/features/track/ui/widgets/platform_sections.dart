@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobile/core/theme/app_color.dart';
 import 'package:mobile/core/share/ui/widgets/custom_text.dart';
 import 'package:mobile/features/track/data/model/price_tracking_model.dart';
 import 'package:mobile/features/track/ui/widgets/platform_tracking_cards.dart';
+import 'package:mobile/features/track/ui/widgets/delete_alert_dialog.dart';
 
-class PlatformSection extends StatelessWidget {
+class PlatformSection extends ConsumerWidget {
   final PlatformTracking platform;
   final bool isDark;
 
@@ -16,7 +18,7 @@ class PlatformSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -28,22 +30,24 @@ class PlatformSection extends StatelessWidget {
           _buildEmptyState()
         else
           SizedBox(
-            height: 220.h,
+            height: 230.h,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               itemCount: platform.products.length,
               itemBuilder: (context, index) {
+                final product = platform.products[index];
                 return Container(
                   width: 280.w,
                   margin: EdgeInsets.only(right: 12.w, bottom: 8.h, top: 4.h),
                   child: PlatformTrackingCard(
-                    product: platform.products[index],
+                    product: product,
                     platformColor: platform.platformColor,
                     platformIcon: platform.platformIcon,
                     onTap: () {
                       // Navigate to product details
                     },
+                    onDelete: () => _showDeleteDialog(context, product),
                   ),
                 );
               },
@@ -148,6 +152,16 @@ class PlatformSection extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, TrackedProduct product) {
+    showDialog(
+      context: context,
+      builder: (context) => DeleteAlertDialog(
+        alertId: int.parse(product.id),
+        productName: product.productName,
       ),
     );
   }

@@ -137,30 +137,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   error: (error, _) => _buildErrorCard(error.toString()),
                 ),
 
-                Consumer(
-                  builder: (context, ref, child) {
-                    final newsAsync = ref.watch(topHeadlinesProvider);
+                // Consumer(
+                //   builder: (context, ref, child) {
+                //     final newsAsync = ref.watch(topHeadlinesProvider);
 
-                    return newsAsync.when(
-                      data: (newsList) {
-                        if (newsList.isEmpty) {
-                          return const SizedBox.shrink();
-                        }
-                        return NewsCarousel(
-                          newsList: newsList,
-                          onNewsTap: _handleNewsTap,
-                        );
-                      },
-                      loading: () => const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: CircularProgressIndicator(),
-                        ),
-                      ),
-                      error: (error, stack) => const SizedBox.shrink(),
-                    );
-                  },
-                ),
+                //     return newsAsync.when(
+                //       data: (newsList) {
+                //         if (newsList.isEmpty) {
+                //           return const SizedBox.shrink();
+                //         }
+                //         return NewsCarousel(
+                //           newsList: newsList,
+                //           onNewsTap: _handleNewsTap,
+                //         );
+                //       },
+                //       loading: () => const Center(
+                //         child: Padding(
+                //           padding: EdgeInsets.symmetric(vertical: 20),
+                //           child: CircularProgressIndicator(),
+                //         ),
+                //       ),
+                //       error: (error, stack) => const SizedBox.shrink(),
+                //     );
+                //   },
+                // ),
+               
+               
+               
+               
                 RecentSearchesWidget(onSearchTap: _handleRecentSearchTap),
                 SizedBox(height: 20.h),
               ]),

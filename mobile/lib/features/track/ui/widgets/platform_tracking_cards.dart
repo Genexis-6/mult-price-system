@@ -9,6 +9,7 @@ class PlatformTrackingCard extends StatelessWidget {
   final Color platformColor;
   final IconData platformIcon;
   final VoidCallback onTap;
+  final VoidCallback? onDelete;
 
   const PlatformTrackingCard({
     super.key,
@@ -16,21 +17,21 @@ class PlatformTrackingCard extends StatelessWidget {
     required this.platformColor,
     required this.platformIcon,
     required this.onTap,
+    this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasCurrentPrice = product.currentPrice != null;
 
     return Container(
+      constraints: BoxConstraints(
+        minHeight: 170.h,
+        maxHeight: 190.h,
+      ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [AppColors.surfaceDark, AppColors.surfaceDark.withOpacity(0.8)]
-              : [Colors.white, Colors.white],
-        ),
+        color: isDark ? AppColors.surfaceDark : Colors.white,
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
@@ -52,45 +53,43 @@ class PlatformTrackingCard extends StatelessWidget {
             padding: EdgeInsets.all(12.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
+                // Platform Badge Row
                 Row(
                   children: [
-                    _buildProductImage(),
-                    SizedBox(width: 12.w),
+                    Container(
+                      padding: EdgeInsets.all(6.w),
+                      decoration: BoxDecoration(
+                        color: platformColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Icon(platformIcon, color: platformColor, size: 16.sp),
+                    ),
+                    SizedBox(width: 8.w),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CustomText(
-                            product.productName,
-                            type: TextType.bodyLarge,
-                            color: isDark ? AppColors.textLight : AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          SizedBox(height: 4.h),
-                          Row(
-                            children: [
-                              Icon(platformIcon, color: platformColor, size: 14.sp),
-                              SizedBox(width: 4.w),
-                              CustomText(
-                                product.platform.toUpperCase(),
-                                type: TextType.bodySmall,
-                                color: platformColor,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ],
-                          ),
-                        ],
+                      child: CustomText(
+                        product.productName,
+                        type: TextType.bodyLarge,
+                        color: isDark ? AppColors.textLight : AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        fontSize: 14.sp,
                       ),
                     ),
+                    _buildStatusBadge(isDark),
                   ],
                 ),
                 SizedBox(height: 12.h),
-                _buildPriceInfo(isDark),
-                SizedBox(height: 8.h),
-                _buildProgressBar(isDark),
+                // Price Info or Pending State
+                if (hasCurrentPrice) ...[
+                  _buildPriceInfo(isDark),
+                  SizedBox(height: 10.h),
+                  _buildProgressBar(isDark),
+                ] else ...[
+                  _buildPendingState(isDark),
+                ],
                 SizedBox(height: 8.h),
                 _buildFooter(isDark),
               ],
@@ -101,73 +100,172 @@ class PlatformTrackingCard extends StatelessWidget {
     );
   }
 
-  Widget _buildProductImage() {
+  Widget _buildStatusBadge(bool isDark) {
+    final status = product.status?.toLowerCase() ?? 'active';
+    Color badgeColor;
+    String badgeText;
+    
+    switch (status) {
+      case 'triggered':
+        badgeColor = Colors.green;
+        badgeText = '🎯 Triggered';
+        break;
+      case 'active':
+        badgeColor = Colors.orange;
+        badgeText = '🔄 Active';
+        break;
+      default:
+        badgeColor = Colors.grey;
+        badgeText = status.toUpperCase();
+    }
+    
     return Container(
-      width: 60.w,
-      height: 60.w,
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
       decoration: BoxDecoration(
+        color: badgeColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: badgeColor.withOpacity(0.3), width: 1),
+      ),
+      child: CustomText(
+        badgeText,
+        type: TextType.bodySmall,
+        color: badgeColor,
+        fontWeight: FontWeight.w600,
+        fontSize: 10.sp,
+      ),
+    );
+  }
+
+  Widget _buildPendingState(bool isDark) {
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.grey[50],
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: platformColor.withOpacity(0.2),
+          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+          width: 1,
+          style: BorderStyle.solid,
         ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12.r),
-        child: Image.network(
-          product.imageUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              color: platformColor.withOpacity(0.1),
-              child: Icon(
-                Icons.image_not_supported,
-                color: platformColor,
-                size: 24.sp,
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CustomText(
+                    'Target Price',
+                    type: TextType.bodySmall,
+                    color: AppColors.textSecondary,
+                    fontSize: 10.sp,
+                  ),
+                  SizedBox(height: 4.h),
+                  CustomText(
+                    '₦${_formatPrice(product.targetPrice)}',
+                    type: TextType.titleMedium,
+                    color: isDark ? AppColors.textLight : AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18.sp,
+                  ),
+                ],
               ),
-            );
-          },
-        ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.hourglass_empty_rounded,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      size: 14.sp,
+                    ),
+                    SizedBox(width: 4.w),
+                    CustomText(
+                      'PENDING',
+                      type: TextType.bodySmall,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10.sp,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          Row(
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                color: AppColors.textSecondary,
+                size: 14.sp,
+              ),
+              SizedBox(width: 6.w),
+              Expanded(
+                child: CustomText(
+                  'Price check in progress. We\'ll notify you when the price is found.',
+                  type: TextType.bodySmall,
+                  color: AppColors.textSecondary,
+                  fontSize: 10.sp,
+                  maxLines: 2,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildPriceInfo(bool isDark) {
-    final priceDiff = product.currentPrice - product.targetPrice;
+    final priceDiff = product.currentPrice! - product.targetPrice;
     final isPriceLower = priceDiff <= 0;
-    final diffPercentage = (priceDiff.abs() / product.targetPrice) * 100;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             CustomText(
               'Current',
               type: TextType.bodySmall,
               color: AppColors.textSecondary,
+              fontSize: 10.sp,
             ),
             CustomText(
-              '₦${product.currentPrice.toStringAsFixed(0)}',
-              type: TextType.titleMedium,
+              '₦${_formatPrice(product.currentPrice!)}',
+              type: TextType.titleSmall,
               color: isDark ? AppColors.textLight : AppColors.textPrimary,
               fontWeight: FontWeight.bold,
+              fontSize: 16.sp,
             ),
           ],
         ),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
           children: [
             CustomText(
               'Target',
               type: TextType.bodySmall,
               color: AppColors.textSecondary,
+              fontSize: 10.sp,
             ),
             CustomText(
-              '₦${product.targetPrice.toStringAsFixed(0)}',
-              type: TextType.titleMedium,
+              '₦${_formatPrice(product.targetPrice)}',
+              type: TextType.titleSmall,
               color: isPriceLower ? Colors.green : Colors.orange,
               fontWeight: FontWeight.bold,
+              fontSize: 16.sp,
             ),
           ],
         ),
@@ -176,10 +274,12 @@ class PlatformTrackingCard extends StatelessWidget {
   }
 
   Widget _buildProgressBar(bool isDark) {
-    final progress = (product.currentPrice / product.targetPrice).clamp(0.0, 2.0);
-    final isPriceLower = product.currentPrice <= product.targetPrice;
+    final progress = (product.currentPrice! / product.targetPrice).clamp(0.0, 2.0);
+    final isPriceLower = product.currentPrice! <= product.targetPrice;
+    final percentage = ((1 - progress) * 100).abs();
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(10.r),
@@ -189,7 +289,7 @@ class PlatformTrackingCard extends StatelessWidget {
             valueColor: AlwaysStoppedAnimation<Color>(
               isPriceLower ? Colors.green : platformColor,
             ),
-            minHeight: 6.h,
+            minHeight: 4.h,
           ),
         ),
         SizedBox(height: 4.h),
@@ -197,24 +297,15 @@ class PlatformTrackingCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             CustomText(
-              '${(progress * 100).toStringAsFixed(0)}% of target',
+              isPriceLower 
+                  ? '${percentage.toStringAsFixed(0)}% below target'
+                  : '${percentage.toStringAsFixed(0)}% above target',
               type: TextType.bodySmall,
               color: AppColors.textSecondary,
+              fontSize: 10.sp,
             ),
             if (product.isTargetReached)
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4.r),
-                ),
-                child: CustomText(
-                  'Target Reached!',
-                  type: TextType.bodySmall,
-                  color: Colors.green,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Icon(Icons.check_circle, color: Colors.green, size: 14.sp),
           ],
         ),
       ],
@@ -223,7 +314,7 @@ class PlatformTrackingCard extends StatelessWidget {
 
   Widget _buildFooter(bool isDark) {
     return Container(
-      padding: EdgeInsets.only(top: 8.h),
+      padding: EdgeInsets.only(top: 6.h),
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
@@ -235,28 +326,62 @@ class PlatformTrackingCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 Icons.access_time_rounded,
                 color: AppColors.textSecondary,
-                size: 14.sp,
+                size: 12.sp,
               ),
               SizedBox(width: 4.w),
               CustomText(
-                'Updated ${_getTimeAgo(product.lastChecked)}',
+                _getTimeAgo(product.lastChecked),
                 type: TextType.bodySmall,
                 color: AppColors.textSecondary,
+                fontSize: 10.sp,
               ),
             ],
           ),
-          Icon(
-            Icons.arrow_forward_ios_rounded,
-            color: platformColor,
-            size: 14.sp,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Delete button
+              if (onDelete != null)
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onDelete,
+                    borderRadius: BorderRadius.circular(20.r),
+                    child: Container(
+                      padding: EdgeInsets.all(6.w),
+                      child: Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.red.withOpacity(0.7),
+                        size: 16.sp,
+                      ),
+                    ),
+                  ),
+                ),
+              // Arrow icon
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: platformColor,
+                size: 12.sp,
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  String _formatPrice(num price) {
+    if (price >= 1000000) {
+      return '${(price / 1000000).toStringAsFixed(1)}M';
+    } else if (price >= 1000) {
+      return '${(price / 1000).toStringAsFixed(0)}K';
+    }
+    return price.toStringAsFixed(0);
   }
 
   String _getTimeAgo(DateTime dateTime) {

@@ -7,23 +7,28 @@ import 'package:mobile/core/josn_converter/icon_converter.dart';
 part 'price_tracking_model.freezed.dart';
 part 'price_tracking_model.g.dart';
 
+
+
 @freezed
 class TrackedProduct with _$TrackedProduct {
   const factory TrackedProduct({
     required String id,
     required String productName,
     required double targetPrice,
-    required double currentPrice,
+    double? currentPrice,
     required String platform,
-    required String imageUrl,
     required double priceDifference,
     required bool isTargetReached,
     required DateTime lastChecked,
-    required List<PriceHistory> priceHistory,
+    String? productUrl,
+    String? status,
+    @Default([]) List<PriceHistory> priceHistory,
   }) = _TrackedProduct;
 
-  factory TrackedProduct.fromJson(Map<String, dynamic> json) => _$TrackedProductFromJson(json);
+  factory TrackedProduct.fromJson(Map<String, dynamic> json) =>
+      _$TrackedProductFromJson(json);
 }
+
 
 @freezed
 class PriceHistory with _$PriceHistory {
@@ -42,17 +47,18 @@ class BestDeal with _$BestDeal {
     required String id,
     required String productName,
     required double price,
+    required double targetPrice,
     required String platform,
-    required String imageUrl,
-    required double rating,
-    required int reviewCount,
-    required String productUrl,
     required double savings,
     required double savingsPercentage,
+    required DateTime triggeredAt,
+    String? productUrl,
   }) = _BestDeal;
 
-  factory BestDeal.fromJson(Map<String, dynamic> json) => _$BestDealFromJson(json);
+  factory BestDeal.fromJson(Map<String, dynamic> json) =>
+      _$BestDealFromJson(json);
 }
+
 
 @freezed
 class PlatformTracking with _$PlatformTracking {

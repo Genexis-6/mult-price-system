@@ -1,24 +1,46 @@
 import 'package:flutter/material.dart';
-// import 'package:flutter_screenutil.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobile/core/share/ui/widgets/custom_button.dart';
 import 'package:mobile/core/theme/app_color.dart';
-// import 'package:mobile/core/share/ui/widgets/custom_buttons.dart';
 import 'package:mobile/core/share/ui/widgets/custom_text.dart';
 import 'package:mobile/core/share/ui/widgets/custom_snack_bar.dart';
+import 'package:mobile/features/track/application/provider/price_tracking_provider.dart';
 
-class CreateAlertDialog extends StatefulWidget {
-  const CreateAlertDialog({super.key});
+class CreateAlertDialog extends ConsumerStatefulWidget {
+  const CreateAlertDialog({super.key, required this.isFirstTime});
+  final bool isFirstTime;
 
   @override
-  State<CreateAlertDialog> createState() => _CreateAlertDialogState();
+  ConsumerState<CreateAlertDialog> createState() => _CreateAlertDialogState();
 }
 
-class _CreateAlertDialogState extends State<CreateAlertDialog> {
+class _CreateAlertDialogState extends ConsumerState<CreateAlertDialog> {
   final _productController = TextEditingController();
   final _priceController = TextEditingController();
   final _emailController = TextEditingController();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCachedEmail();
+  }
+
+  @override
+  void dispose() {
+    _productController.dispose();
+    _priceController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  void _loadCachedEmail() {
+    final notifier = ref.read(priceTrackingProvider.notifier);
+    if (notifier.hasCachedEmail()) {
+      _emailController.text = notifier.getCachedEmail()!;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +97,7 @@ class _CreateAlertDialogState extends State<CreateAlertDialog> {
             ),
             SizedBox(height: 12.h),
             TextField(
+              readOnly: widget.isFirstTime == false,
               controller: _emailController,
               decoration: const InputDecoration(
                 labelText: 'Email Address',
@@ -107,32 +130,81 @@ class _CreateAlertDialogState extends State<CreateAlertDialog> {
 
   Future<void> _createAlert() async {
     final product = _productController.text.trim();
-    final price = double.tryParse(_priceController.text.trim());
+    final price = _priceController.text.trim();
     final email = _emailController.text.trim();
 
+    // Validate product name
     if (product.isEmpty) {
-      CustomSnackbar.warning(context: context, message: 'Please enter product name');
+      CustomSnackbar.warning(
+        context: context,
+        message: 'Please enter product name',
+      );
       return;
     }
-    if (price == null || price <= 0) {
-      CustomSnackbar.warning(context: context, message: 'Please enter valid target price');
+
+    // Validate price
+    if (price.isEmpty) {
+      CustomSnackbar.warning(
+        context: context,
+        message: 'Please enter target price',
+      );
       return;
     }
+
+    final targetPrice = double.tryParse(price);
+    if (targetPrice == null || targetPrice <= 0) {
+      CustomSnackbar.warning(
+        context: context,
+        message: 'Please enter valid target price',
+      );
+      return;
+    }
+
+    // Validate email
     if (email.isEmpty || !email.contains('@')) {
-      CustomSnackbar.warning(context: context, message: 'Please enter valid email');
+      CustomSnackbar.warning(
+        context: context,
+        message: 'Please enter valid email',
+      );
       return;
     }
 
     setState(() => _isLoading = true);
-    
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-    
-    setState(() => _isLoading = false);
-    Navigator.pop(context);
-    CustomSnackbar.success(
-      context: context,
-      message: 'Price alert created successfully!',
-    );
+
+    try {
+      // Create alert via provider
+      await ref
+          .read(priceTrackingProvider.notifier)
+          .createAlert(
+            productName: product,
+            targetPrice: targetPrice,
+            email: email,
+          );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Navigator.pop(context);
+
+        if (widget.isFirstTime) {
+          CustomSnackbar.success(
+            context: context,
+            message: '🎉 Welcome! Your first price alert is active!',
+          );
+        } else {
+          CustomSnackbar.success(
+            context: context,
+            message: '✅ Price alert created successfully!',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        CustomSnackbar.error(
+          context: context,
+          message: 'Failed to create alert: $e',
+        );
+      }
+    }
   }
 }
