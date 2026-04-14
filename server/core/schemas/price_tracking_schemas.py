@@ -24,9 +24,17 @@ class CreatePriceAlertSchema(BaseModel):
         }
 
 class UpdatePriceAlertSchema(BaseModel):
-    target_price: Optional[float] = None
+    target_price: Optional[float] = Field(None, gt=0)
     status: Optional[AlertStatus] = None
-
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "target_price": 1000000,
+                "status": "active"
+            }
+        }
+        
 class PriceAlertResponse(BaseModel):
     id: int
     email: str

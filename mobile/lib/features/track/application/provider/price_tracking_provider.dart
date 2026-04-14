@@ -739,6 +739,8 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
   }
 
   // Update an alert's target price
+  // Update an alert's target price
+  // Update an alert's target price
   Future<bool> updateAlert({
     required int alertId,
     required double targetPrice,
@@ -750,19 +752,22 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
         targetPrice: targetPrice,
       );
 
-      if (response.success) {
+      if (response.success && response.data != null) {
+        logger.d(
+          'Alert updated: ${response.data!.data.productName} -> ₦${response.data!.data.targetPrice}',
+        );
         // Refresh data to show updated price
         await refreshData();
         return true;
       }
+
+      logger.w('Update alert failed: ${response.message}');
       return false;
     } catch (e) {
       logger.e('Failed to update alert: $e');
       return false;
     }
   }
-
-  // MARK: - Public Methods
 
   Future<void> refreshData() async {
     if (_isDisposed) return;

@@ -23,14 +23,14 @@ class PriceTrackingApi {
         productName: productName,
         targetPrice: targetPrice,
       );
-      
+
       final res = await _api.post(
         "/price-tracking/alert",
         data: schema.toJson(),
       );
-      
+
       logger.d("Create alert response: ${res.data}");
-      
+
       return CustomResponse.success(
         data: CreateAlertApiResponse.fromJson(res.data),
         message: 'Alert created successfully',
@@ -52,7 +52,7 @@ class PriceTrackingApi {
     try {
       final res = await _api.get("/price-tracking/alerts/$email");
       logger.d("Get user alerts response: ${res.data}");
-      
+
       return CustomResponse.success(
         data: GetUserAlertsApiResponse.fromJson(res.data),
         message: 'Alerts retrieved successfully',
@@ -74,7 +74,7 @@ class PriceTrackingApi {
     try {
       final res = await _api.delete("/price-tracking/alert/$alertId");
       logger.d("Cancel alert response: ${res.data}");
-      
+
       return CustomResponse.success(
         data: CancelAlertApiResponse.fromJson(res.data),
         message: 'Alert cancelled successfully',
@@ -98,32 +98,42 @@ class PriceTrackingApi {
   }
 
   /// Update a price alert
+  /// Update a price alert
   /// PATCH /price-tracking/alert/{alert_id}
   Future<CustomResponse> updateAlert({
     required int alertId,
     double? targetPrice,
-    AlertStatus? status,
+    String? status,
   }) async {
     try {
-      final schema = UpdatePriceAlertModel(
-        targetPrice: targetPrice,
-        status: status,
-      );
-      
+      final data = <String, dynamic>{};
+      if (targetPrice != null) data['target_price'] = targetPrice;
+      if (status != null) data['status'] = status;
+
       final res = await _api.patch(
         "/price-tracking/alert/$alertId",
-        data: schema.toJson(),
+        data: data,
       );
-      
+
       logger.d("Update alert response: ${res.data}");
-      
+
+      final apiResponse = UpdateAlertResponse.fromJson(res.data);
+
       return CustomResponse.success(
-        data: PriceAlertResponse.fromJson(res.data['data']),
-        message: 'Alert updated successfully',
+        data: apiResponse,
+        message: apiResponse.message,
       );
     } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return CustomResponse.error(
+          message: 'Alert not found',
+          errorCode: 'ALERT_NOT_FOUND',
+          statusCode: 404,
+        );
+      }
       return ApiExceptionHandler.handleDioException(e);
     } catch (e) {
+      logger.e('Failed to update alert: $e');
       return CustomResponse.error(
         message: 'Failed to update alert: ${e.toString()}',
         errorCode: 'UPDATE_ALERT_ERROR',
@@ -138,7 +148,7 @@ class PriceTrackingApi {
     try {
       final res = await _api.post("/price-tracking/check-alerts");
       logger.d("Trigger check all alerts response: ${res.data}");
-      
+
       return CustomResponse.success(
         data: TriggerCheckApiResponse.fromJson(res.data),
         message: 'Price check triggered',
@@ -160,7 +170,7 @@ class PriceTrackingApi {
     try {
       final res = await _api.post("/price-tracking/check-alert/$alertId");
       logger.d("Trigger single alert check response: ${res.data}");
-      
+
       return CustomResponse.success(
         data: TriggerCheckApiResponse.fromJson(res.data),
         message: 'Single alert check triggered',
@@ -182,7 +192,7 @@ class PriceTrackingApi {
     try {
       final res = await _api.get("/price-tracking/compare/$productName");
       logger.d("Price comparison response: ${res.data}");
-      
+
       return CustomResponse.success(
         data: PriceComparisonResponse.fromJson(res.data['data']),
         message: 'Price comparison retrieved',
@@ -204,11 +214,11 @@ class PriceTrackingApi {
     try {
       final res = await _api.get("/price-tracking/history/$alertId");
       logger.d("Price history response: ${res.data}");
-      
+
       final history = (res.data['data'] as List)
           .map((item) => PriceHistoryResponse.fromJson(item))
           .toList();
-      
+
       return CustomResponse.success(
         data: history,
         message: 'Price history retrieved',
@@ -230,7 +240,7 @@ class PriceTrackingApi {
     try {
       final res = await _api.get("/predict/status/$taskId");
       logger.d("Task status response: ${res.data}");
-      
+
       return CustomResponse.success(
         data: res.data['data'] as Map<String, dynamic>,
         message: res.data['message'] ?? 'Task status retrieved',

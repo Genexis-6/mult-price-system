@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from core.store.queries.price_tracking_queries import PriceTrackingQueries
 from core.service import PriceTrackingService
-from core.schemas.price_tracking_schemas import CreatePriceAlertSchema
+from core.schemas.price_tracking_schemas import CreatePriceAlertSchema, UpdatePriceAlertSchema
 from app.helpers import db_injection
 from core.utils.logger import get_logger
 from core.store import db_session_manager
@@ -180,3 +180,52 @@ async def price_tracking_websocket(websocket: WebSocket, email: str):
     except Exception as e:
         logger.error(f"WebSocket error for {email}: {e}")
         manager.disconnect(email)
+        
+        
+        
+
+@price_tracking.patch("/alert/{alert_id}", operation_id="update_price_alert")
+async def update_price_alert(
+    alert_id: int, 
+    alert_data: UpdatePriceAlertSchema, 
+    db: db_injection
+):
+    """Update a price alert's target price"""
+    try:
+        queries = PriceTrackingQueries(db)
+        alert = await queries.get_alert_by_id(alert_id)
+        
+        if not alert:
+            raise HTTPException(status_code=404, detail="Alert not found")
+        
+        # Update target price
+        if alert_data.target_price is not None:
+            alert.target_price = alert_data.target_price
+        
+        # Update status if provided
+        if alert_data.status is not None:
+            alert.status = alert_data.status.value if hasattr(alert_data.status, 'value') else alert_data.status
+        
+        await db.commit()
+        await db.refresh(alert)
+        
+        # Trigger a price check for the updated alert
+        from worker.price_checker_task import check_single_alert_task
+        task = await check_single_alert_task.kiq(alert_id)
+        
+        return {
+            "success": True,
+            "message": "Price alert updated successfully",
+            "data": {
+                "alert_id": alert.id,
+                "product_name": alert.product_name,
+                "target_price": alert.target_price,
+                "status": alert.status,
+                "task_id": task.task_id
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update alert: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

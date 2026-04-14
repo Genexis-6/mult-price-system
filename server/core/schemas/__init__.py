@@ -6,4 +6,4 @@ from .redis_schemas import RedisPublishSchemas
 from .response_schemas import CustomResponseSchemas
 from .device_schemas import CreateDeviceSchemas, StoreDeviceTaskIdSchemas
 from .notification_schemas import NotificationSchemas, NotificationResponseSchemas
-from .price_tracking_schemas import CreatePriceAlertSchema
+from .price_tracking_schemas import CreatePriceAlertSchema, UpdatePriceAlertSchema

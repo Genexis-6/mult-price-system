@@ -51,15 +51,12 @@ async def pipeline_task_handler(
             message=f"Processing query: {query}"
         ))
         
-        result = None  # Initialize result variable
-        
         if mode == "predict":
             redis_query = RedisQuery(redis_client)
             await redis_query.create_index()
             results = await redis_query.fuzzy_search(query)
             
             if results:
-                # Give WebSocket time to connect
                 await asyncio.sleep(1)
                 
                 await publish_redis_job(redis_client, RedisPublishSchemas(
@@ -68,14 +65,12 @@ async def pipeline_task_handler(
                     message=f"Getting {query} information from Jumia, Konga, and Jiji..."
                 ))
                 
-                # Parse results
                 parsed = redis_query.parse_results(results)
                 
                 if parsed:
                     logger.debug("Found similar result in Redis")
-                    result = parsed[0]["data"]  # Set result here
+                    result = parsed[0]["data"]
                     
-                    # Send progress updates before final result
                     await publish_redis_job(redis_client, RedisPublishSchemas(
                         task_id=task_id,
                         progress=50,
@@ -92,11 +87,9 @@ async def pipeline_task_handler(
                         result=result
                     ))
                     
-                    # Store successful result
                     await redis_client.set(f"task:{task_id}:status", "SUCCESS", ex=3600)
                     await redis_client.set(f"task:{task_id}:result", json.dumps(result), ex=3600)
                     
-                    # Send notification
                     try:
                         await push_notification_handler(task_id)
                     except Exception as e:
@@ -104,56 +97,39 @@ async def pipeline_task_handler(
                     
                     return result
 
-        # Only run full pipeline if no cached results
+        # Run full pipeline
         from worker.pipelines import run_full_pipeline
 
         result = await run_full_pipeline(
-            task_id=task_id,
             query=query,
             mode=mode,
-            redis=redis_client,
+            redis_client=redis_client,  # Note: parameter name is redis_client
+            task_id=task_id,
             pages=pages if mode == "train_model" else 1
         )
-        
-        await publish_redis_job(redis_client, RedisPublishSchemas(
-            task_id=task_id,
-            status=TaskResults.COMPLETED.value,
-            mode=mode,
-            result=result,
-            progress=100,
-            message="Your recommendation is complete"
-        ))
-        
-        if mode == "predict":
-            await redis_query.store_result(query, result)
-        
-        await push_notification_handler(task_id)
         
         # Store successful result
         await redis_client.set(f"task:{task_id}:status", "SUCCESS", ex=3600)
         await redis_client.set(f"task:{task_id}:result", json.dumps(result), ex=3600)
+        
+        await push_notification_handler(task_id)
 
         return result
 
     except Exception as e:
         logger.error(f"Task {task_id} failed: {e}")
         
-        # Store failure status
         if redis_client:
             await redis_client.set(f"task:{task_id}:status", "FAILED", ex=3600)
             await redis_client.set(f"task:{task_id}:error", str(e), ex=3600)
             
-            await redis_client.publish(
-                f"jobs:{task_id}",
-                json.dumps({
-                    "job_id": task_id,
-                    "status": TaskResults.FAILED.value,
-                    "error": str(e),
-                })
-            )
+            await publish_redis_job(redis_client, RedisPublishSchemas(
+                task_id=task_id,
+                progress=0,
+                status=TaskResults.FAILED.value,
+                message=f"❌ Task failed: {str(e)[:50]}..."
+            ))
         raise
-    
-    
     
     
     

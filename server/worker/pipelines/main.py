@@ -9,10 +9,6 @@ Flow:
   5. Normalize — clip/impute, engineer features, Z-score/log1p normalize
   6. ML        — train XGBoost (if mode="train_model") then score & rank
   7. Output    — return top N recommendations with platform + buy link
-
-Two modes:
-  "train_model" — retrain on fresh data every run (scheduled refresh)
-  "predict"     — skip training, use saved model (fast user-facing queries)
 """
 
 import asyncio
@@ -41,13 +37,13 @@ logger = get_logger(__name__)
 async def run_etl_layer(
     query: str, 
     pages: int = 2, 
-    redis: redis.Redis = None,
+    redis_client: redis.Redis = None,
     task_id: Optional[str] = None
 ) -> dict:
     """Run all 3 ETLs concurrently. Returns row counts per platform."""
     
     # Publish ETL start
-    await publish_redis_job(redis, RedisPublishSchemas(
+    await publish_redis_job(redis_client, RedisPublishSchemas(
         task_id=task_id,
         progress=5,
         message=f"🔍 Searching for the best deals on \"{query}\"..."
@@ -74,20 +70,20 @@ async def run_etl_layer(
             completed += 1
             
             progress = 5 + (completed * 5)  # 10%, 15%, 20%
-            await publish_redis_job(redis, RedisPublishSchemas(
+            await publish_redis_job(redis_client, RedisPublishSchemas(
                 task_id=task_id,
                 progress=progress,
-                message=f"✓ Found {count} listings so far, hang tight..."
+                message=f"✓ Found {count} listings on {name.title()}..."
             ))
             logger.info(f"✓ {name}: {count} products loaded")
             
         except Exception as e:
             results[name] = 0
             logger.error(f"✗ {name}: failed — {e}")
-            await publish_redis_job(redis, RedisPublishSchemas(
+            await publish_redis_job(redis_client, RedisPublishSchemas(
                 task_id=task_id,
                 progress=5 + (completed * 5),
-                message=f"⚠️ Couldn't reach one of our sources, continuing with others..."
+                message=f"⚠️ {name.title()} is taking longer than expected..."
             ))
 
     return results
@@ -99,137 +95,165 @@ async def run_full_pipeline(
     query: str,
     pages: int = 2,
     mode: Optional[Literal["train_model", "predict"]] = "predict",
-    redis: redis.Redis = None,
+    redis_client: redis.Redis = None,
     task_id: Optional[str] = None
-    
 ) -> list[dict]:
     """
     Orchestrates the full recommendation pipeline for a search query.
-
-    Args:
-        query: User search term e.g. "samsung phone"
-        pages: Number of pages to scrape per platform
-        mode:  "train_model" → scrape + retrain + predict (scheduled refresh)
-               "predict"     → scrape + predict only (fast user-facing path)
-
-    Returns:
-        Ranked list of product recommendation dicts.
     """
     logger.info(f"=== Pipeline START | query='{query}' | mode={mode} ===")
 
-    # ── Layer 1: ETL ──────────────────────────────────────────────────────────
-    await publish_redis_job(redis, RedisPublishSchemas(
-        task_id=task_id,
-        progress=5,
-        message=f"🔍 Searching for the best deals on \"{query}\"..."
-    ))
-    
-    etl_results = await run_etl_layer(query, pages, redis, task_id)
-    total_scraped = sum(etl_results.values())
-    logger.info(f"Layer 1 ✓ ETL: {etl_results} | total={total_scraped}")
+    try:
+        # ── Layer 1: ETL ──────────────────────────────────────────────────────────
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            task_id=task_id,
+            progress=5,
+            message=f"🔍 Searching for the best deals on \"{query}\"..."
+        ))
+        
+        etl_results = await run_etl_layer(query, pages, redis_client, task_id)
+        total_scraped = sum(etl_results.values())
+        logger.info(f"Layer 1 ✓ ETL: {etl_results} | total={total_scraped}")
 
-    if total_scraped == 0:
-        logger.error("No products scraped — aborting pipeline.")
-        await publish_redis_job(redis, RedisPublishSchemas(
+        if total_scraped == 0:
+            logger.error("No products scraped — aborting pipeline.")
+            await publish_redis_job(redis_client, RedisPublishSchemas(
+                task_id=task_id,
+                progress=0,
+                message=f"😕 We couldn't find anything for \"{query}\". Try a different search?",
+                status=TaskResults.FAILED.value
+            ))
+            return []
+        
+        # ── Layer 2: Fusion (merge + dedup, no normalization yet) ─────────────────
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            task_id=task_id,
+            progress=20,
+            message="🔄 Comparing prices across multiple stores..."
+        ))
+        
+        df = await merge_platforms(query)
+        if df.empty:
+            logger.error("Fusion returned empty DataFrame — aborting.")
+            await publish_redis_job(redis_client, RedisPublishSchemas(
+                task_id=task_id,
+                progress=0,
+                message=f"😕 No products found for \"{query}\".",
+                status=TaskResults.FAILED.value
+            ))
+            return []
+
+        df = await assign_duplicate_groups(df)
+        logger.info(
+            f"Layer 2 ✓ Fusion: {len(df)} listings | "
+            f"{int(df['is_duplicate'].sum())} cross-platform duplicates flagged"
+        )
+        
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            task_id=task_id,
+            progress=30,
+            message=f"📦 Found {len(df)} products — now analyzing reviews..."
+        ))
+
+        # ── Layer 3: Sentiment ─────────────────────────────────────────────────────
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            task_id=task_id,
+            progress=35,
+            message="💬 Reading through customer reviews for you..."
+        ))
+        
+        await run_sentiment()
+        logger.info("Layer 3 ✓ Sentiment: scores written to DB")
+        
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            task_id=task_id,
+            progress=45,
+            message="✅ Finished analyzing customer feedback"
+        ))
+
+        # ── Layer 4: Reload with sentiment scores ──────────────────────────────────
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            task_id=task_id,
+            progress=50,
+            message="📊 Crunching the review data..."
+        ))
+        
+        df = await merge_platforms(query)
+        if df.empty:
+            logger.warning(f"Layer 4 ✗ No data found for query='{query}' after reload")
+            await publish_redis_job(redis_client, RedisPublishSchemas(
+                task_id=task_id,
+                progress=0,
+                message=f"😕 Lost connection to our database. Please try again.",
+                status=TaskResults.FAILED.value
+            ))
+            return []
+
+        sentiment_count = df['sentiment_score'].notna().sum()
+        logger.info(
+            f"Layer 4 ✓ Reload: {sentiment_count}/{len(df)} "
+            f"listings have sentiment scores"
+        )
+        
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            task_id=task_id,
+            progress=55,
+            message=f"✅ Reviewed feedback on {sentiment_count} products"
+        ))
+
+        # ── Layer 5: Normalize ─────────────────────────────────────────────────────
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            task_id=task_id,
+            progress=60,
+            message="⚖️ Comparing products fairly across stores..."
+        ))
+        
+        df, norm_stats = normalize(df)
+        logger.info(f"Layer 5 ✓ Normalize: {list(norm_stats.keys())}")
+
+        # Persist enriched fused DataFrame to fused_products table
+        await save_fused(df, query)
+        
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            task_id=task_id,
+            progress=70,
+            message="🧮 Almost there, putting it all together..."
+        ))
+
+        # ── Layer 6: ML ────────────────────────────────────────────────────────────
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            task_id=task_id,
+            progress=75,
+            message=f"🤖 Picking the best options for \"{query}\"..."
+        ))
+        
+        recommendations = await run_ml(df, query, mode=mode)
+        logger.info(f"Layer 6 ✓ ML: {len(recommendations)} recommendations | mode={mode}")
+
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            task_id=task_id,
+            progress=90,
+            message=f"🎯 Got your top {len(recommendations)} picks ready!"
+        ))
+
+        # Final completion message
+        await publish_redis_job(redis_client, RedisPublishSchemas(
+            task_id=task_id,
+            progress=100,
+            status=TaskResults.COMPLETED.value,
+            result=recommendations,
+            message=f"✨ Found {len(recommendations)} great options for you!"
+        ))
+
+        logger.info(f"=== Pipeline END | query='{query}' ===")
+        return recommendations
+        
+    except Exception as e:
+        logger.error(f"Pipeline failed: {e}")
+        await publish_redis_job(redis_client, RedisPublishSchemas(
             task_id=task_id,
             progress=0,
-            message=f"😕 We couldn't find anything for \"{query}\". Try a different search?",
-            status=TaskResults.FAILED
+            status=TaskResults.FAILED.value,
+            message=f"❌ Something went wrong: {str(e)[:50]}..."
         ))
-        return []
-    
-    # ── Layer 2: Fusion (merge + dedup, no normalization yet) ─────────────────
-    await publish_redis_job(redis, RedisPublishSchemas(
-        task_id=task_id,
-        progress=20,
-        message="🔄 Comparing prices across multiple stores..."
-    ))
-    
-    df = await merge_platforms(query)
-    if df.empty:
-        logger.error("Fusion returned empty DataFrame — aborting.")
-        return []
-
-    df = await assign_duplicate_groups(df)
-    logger.info(
-        f"Layer 2 ✓ Fusion: {len(df)} listings | "
-        f"{int(df['is_duplicate'].sum())} cross-platform duplicates flagged"
-    )
-    
-    await publish_redis_job(redis, RedisPublishSchemas(
-        task_id=task_id,
-        progress=30,
-        message=f"📦 Found {len(df)} products — now digging into the details..."
-    ))
-
-    # ── Layer 3: Sentiment ─────────────────────────────────────────────────────
-    await publish_redis_job(redis, RedisPublishSchemas(
-        task_id=task_id,
-        progress=40,
-        message="💬 Reading through customer reviews for you..."
-    ))
-    
-    await run_sentiment()
-    logger.info("Layer 3 ✓ Sentiment: scores written to DB")
-
-    # ── Layer 4: Reload with sentiment scores ──────────────────────────────────
-    await publish_redis_job(redis, RedisPublishSchemas(
-        task_id=task_id,
-        progress=50,
-        message="📊 Crunching the review data..."
-    ))
-    
-    df = await merge_platforms(query)
-    if df.empty:
-        logger.warning(f"Layer 4 ✗ No data found for query='{query}' after reload")
-        return []
-
-    sentiment_count = df['sentiment_score'].notna().sum()
-    logger.info(
-        f"Layer 4 ✓ Reload: {sentiment_count}/{len(df)} "
-        f"listings have sentiment scores"
-    )
-    
-    await publish_redis_job(redis, RedisPublishSchemas(
-        task_id=task_id,
-        progress=55,
-        message=f"✅ Reviewed feedback on {sentiment_count} products"
-    ))
-
-    # ── Layer 5: Normalize ─────────────────────────────────────────────────────
-    await publish_redis_job(redis, RedisPublishSchemas(
-        task_id=task_id,
-        progress=60,
-        message="⚖️ Comparing products fairly across stores..."
-    ))
-    
-    df, norm_stats = normalize(df)
-    logger.info(f"Layer 5 ✓ Normalize: {list(norm_stats.keys())}")
-
-    # Persist enriched fused DataFrame to fused_products table
-    await save_fused(df, query)
-    
-    await publish_redis_job(redis, RedisPublishSchemas(
-        task_id=task_id,
-        progress=70,
-        message="🧮 Almost there, putting it all together..."
-    ))
-
-    # ── Layer 6: ML ────────────────────────────────────────────────────────────
-    await publish_redis_job(redis, RedisPublishSchemas(
-        task_id=task_id,
-        progress=80,
-        message=f"🤖 Picking the best options for \"{query}\"..."
-    ))
-    
-    recommendations = await run_ml(df, query, mode=mode)
-    logger.info(f"Layer 6 ✓ ML: {len(recommendations)} recommendations | mode={mode}")
-
-    await publish_redis_job(redis, RedisPublishSchemas(
-        task_id=task_id,
-        progress=90,
-        message=f"🎯 Got your top {len(recommendations)} picks ready!"
-    ))
-
-    logger.info(f"=== Pipeline END | query='{query}' ===")
-    return recommendations
+        raise

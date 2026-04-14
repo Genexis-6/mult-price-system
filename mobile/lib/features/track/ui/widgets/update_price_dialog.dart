@@ -10,10 +10,7 @@ import 'package:mobile/features/track/data/model/price_tracking_model.dart';
 class UpdateAlertDialog extends ConsumerStatefulWidget {
   final TrackedProduct product;
 
-  const UpdateAlertDialog({
-    super.key,
-    required this.product,
-  });
+  const UpdateAlertDialog({super.key, required this.product});
 
   @override
   ConsumerState<UpdateAlertDialog> createState() => _UpdateAlertDialogState();
@@ -40,9 +37,7 @@ class _UpdateAlertDialogState extends ConsumerState<UpdateAlertDialog> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24.r),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24.r)),
       backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surface,
       child: Container(
         padding: EdgeInsets.all(20.w),
@@ -56,7 +51,10 @@ class _UpdateAlertDialogState extends ConsumerState<UpdateAlertDialog> {
                   padding: EdgeInsets.all(10.w),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [AppColors.primary, AppColors.primary.withOpacity(0.7)],
+                      colors: [
+                        AppColors.primary,
+                        AppColors.primary.withOpacity(0.7),
+                      ],
                     ),
                     borderRadius: BorderRadius.circular(12.r),
                   ),
@@ -74,7 +72,9 @@ class _UpdateAlertDialogState extends ConsumerState<UpdateAlertDialog> {
                       CustomText(
                         'Update Target Price',
                         type: TextType.titleLarge,
-                        color: isDark ? AppColors.textLight : AppColors.textPrimary,
+                        color: isDark
+                            ? AppColors.textLight
+                            : AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                       CustomText(
@@ -105,28 +105,30 @@ class _UpdateAlertDialogState extends ConsumerState<UpdateAlertDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       CustomText(
-                        'Current Best Price',
+                        'Current Target',
                         type: TextType.bodySmall,
                         color: AppColors.textSecondary,
                       ),
                       SizedBox(height: 4.h),
                       CustomText(
-                        widget.product.currentPrice != null
-                            ? '₦${_formatPrice(widget.product.currentPrice!)}'
-                            : 'Pending',
+                        '₦${_formatPrice(widget.product.targetPrice)}',
                         type: TextType.titleMedium,
-                        color: widget.product.currentPrice != null &&
-                                widget.product.currentPrice! <= widget.product.targetPrice
-                            ? Colors.green
-                            : (isDark ? AppColors.textLight : AppColors.textPrimary),
+                        color: isDark
+                            ? AppColors.textLight
+                            : AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ],
                   ),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 6.h,
+                    ),
                     decoration: BoxDecoration(
-                      color: _getPlatformColor(widget.product.platform).withOpacity(0.1),
+                      color: _getPlatformColor(
+                        widget.product.platform,
+                      ).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20.r),
                     ),
                     child: Row(
@@ -174,7 +176,10 @@ class _UpdateAlertDialogState extends ConsumerState<UpdateAlertDialog> {
                   child: Row(
                     children: [
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 14.h,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.only(
@@ -194,15 +199,20 @@ class _UpdateAlertDialogState extends ConsumerState<UpdateAlertDialog> {
                         child: TextField(
                           controller: _priceController,
                           keyboardType: TextInputType.number,
+                          enabled: !_isLoading,
                           style: TextStyle(
-                            color: isDark ? AppColors.textLight : AppColors.textPrimary,
+                            color: isDark
+                                ? AppColors.textLight
+                                : AppColors.textPrimary,
                             fontSize: 18.sp,
                             fontWeight: FontWeight.w500,
                           ),
                           decoration: InputDecoration(
                             hintText: 'Enter new target price',
                             hintStyle: TextStyle(
-                              color: isDark ? Colors.grey[600] : Colors.grey[400],
+                              color: isDark
+                                  ? Colors.grey[600]
+                                  : Colors.grey[400],
                               fontSize: 16.sp,
                             ),
                             border: InputBorder.none,
@@ -253,7 +263,7 @@ class _UpdateAlertDialogState extends ConsumerState<UpdateAlertDialog> {
               children: [
                 Expanded(
                   child: TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _isLoading ? null : () => Navigator.pop(context),
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
@@ -273,7 +283,10 @@ class _UpdateAlertDialogState extends ConsumerState<UpdateAlertDialog> {
                     height: 48.h,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+                        colors: [
+                          AppColors.primary,
+                          AppColors.primary.withOpacity(0.8),
+                        ],
                       ),
                       borderRadius: BorderRadius.circular(12.r),
                       boxShadow: [
@@ -296,7 +309,9 @@ class _UpdateAlertDialogState extends ConsumerState<UpdateAlertDialog> {
                                   height: 20.w,
                                   child: const CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 )
                               : Row(
@@ -359,37 +374,33 @@ class _UpdateAlertDialogState extends ConsumerState<UpdateAlertDialog> {
     setState(() => _isLoading = true);
 
     try {
-      final success = await ref
-          .read(priceTrackingProvider.notifier)
-          .updateAlert(
-            alertId: int.parse(widget.product.id),
-            targetPrice: newPrice,
-          );
+      final notifier = ref.read(priceTrackingProvider.notifier);
+      final success = await notifier.updateAlert(
+        alertId: int.parse(widget.product.id),
+        targetPrice: newPrice,
+      );
 
-      if (mounted) {
-        setState(() => _isLoading = false);
-        
-        if (success) {
-          Navigator.pop(context);
-          CustomSnackbar.success(
-            context: context,
-            message: 'Target price updated to ₦${_formatPrice(newPrice)}',
-          );
-        } else {
-          CustomSnackbar.error(
-            context: context,
-            message: 'Failed to update target price',
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+
+      if (success) {
+        Navigator.pop(context);
+        CustomSnackbar.success(
+          context: context,
+          message: '✅ Target price updated to ₦${_formatPrice(newPrice)}',
+        );
+      } else {
         CustomSnackbar.error(
           context: context,
-          message: 'Error: ${e.toString()}',
+          message: 'Failed to update target price. Please try again.',
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+      CustomSnackbar.error(context: context, message: 'Error: ${e.toString()}');
     }
   }
 

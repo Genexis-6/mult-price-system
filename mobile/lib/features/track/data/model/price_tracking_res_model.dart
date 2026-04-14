@@ -167,3 +167,31 @@ class TriggerCheckApiResponse with _$TriggerCheckApiResponse {
   factory TriggerCheckApiResponse.fromJson(Map<String, dynamic> json) =>
       _$TriggerCheckApiResponseFromJson(json);
 }
+
+
+
+@freezed
+class UpdateAlertResponse with _$UpdateAlertResponse {
+  const factory UpdateAlertResponse({
+    required bool success,
+    required String message,
+    required UpdateAlertData data,
+  }) = _UpdateAlertResponse;
+
+  factory UpdateAlertResponse.fromJson(Map<String, dynamic> json) =>
+      _$UpdateAlertResponseFromJson(json);
+}
+
+@freezed
+class UpdateAlertData with _$UpdateAlertData {
+  const factory UpdateAlertData({
+    @JsonKey(name: 'alert_id') required int alertId,
+    @JsonKey(name: 'product_name') required String productName,
+    @JsonKey(name: 'target_price') required double targetPrice,
+    required String status,
+    @JsonKey(name: 'task_id') required String taskId,
+  }) = _UpdateAlertData;
+
+  factory UpdateAlertData.fromJson(Map<String, dynamic> json) =>
+      _$UpdateAlertDataFromJson(json);
+}

@@ -8,3 +8,4 @@ logs
 *.g.dart
 *.freezed.dart
 *keys/
+*alembic/
