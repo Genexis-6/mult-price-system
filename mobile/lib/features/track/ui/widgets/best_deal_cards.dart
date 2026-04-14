@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobile/core/theme/app_color.dart';
 import 'package:mobile/core/share/ui/widgets/custom_text.dart';
 import 'package:mobile/features/track/data/model/price_tracking_model.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BestDealCard extends StatelessWidget {
   final BestDeal deal;

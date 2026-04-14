@@ -42,24 +42,24 @@ class UpdatePriceAlertModel with _$UpdatePriceAlertModel {
 
 // MARK: - Price Alert Response
 @freezed
-class PriceAlertResponse with _$PriceAlertResponse {
+sealed class PriceAlertResponse with _$PriceAlertResponse {
   const factory PriceAlertResponse({
     required int id,
-    @Default('') String email,  // Default value since API doesn't return it
+    @Default('') String email,
     @JsonKey(name: 'product_name') required String productName,
     @JsonKey(name: 'target_price') required double targetPrice,
     @JsonKey(name: 'current_best_price') double? currentBestPrice,
     @JsonKey(name: 'current_best_platform') String? currentBestPlatform,
+    @JsonKey(name: 'current_best_url') String? currentBestUrl,  // MUST HAVE THIS
     required String status,
-    @JsonKey(name: 'notification_sent') @Default(false) bool notificationSent,  // Default value
+    @JsonKey(name: 'notification_sent') @Default(false) bool notificationSent,
     @JsonKey(name: 'created_at') required DateTime createdAt,
-    @JsonKey(name: 'updated_at') DateTime? updatedAt,  // Make nullable since API doesn't return it
+    @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _PriceAlertResponse;
 
   factory PriceAlertResponse.fromJson(Map<String, dynamic> json) =>
       _$PriceAlertResponseFromJson(json);
 }
-
 // MARK: - Price History Response
 @freezed
 class PriceHistoryResponse with _$PriceHistoryResponse {

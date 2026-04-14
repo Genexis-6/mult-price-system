@@ -38,7 +38,6 @@ async def create_price_alert(alert_data: CreatePriceAlertSchema, db: db_injectio
         raise HTTPException(status_code=500, detail=str(e))
     
     
-    
 @price_tracking.get("/alerts/{email}", operation_id="get_user_alerts")
 async def get_user_alerts(email: str, db: db_injection):
     """Get all alerts for a user"""
@@ -55,7 +54,7 @@ async def get_user_alerts(email: str, db: db_injection):
                     "target_price": a.target_price,
                     "current_best_price": a.current_best_price,
                     "current_best_platform": a.current_best_platform,
-                    # Fix: Check if status is Enum or string
+                    "current_best_url": a.current_best_url,  # IMPORTANT: Include URL
                     "status": a.status.value if hasattr(a.status, 'value') else a.status,
                     "created_at": a.created_at.isoformat()
                 }
@@ -65,7 +64,6 @@ async def get_user_alerts(email: str, db: db_injection):
     except Exception as e:
         logger.error(f"Failed to get alerts: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 @price_tracking.delete("/alert/{alert_id}", operation_id="cancel_alert")
 async def cancel_alert(alert_id: int, db: db_injection):
     """Cancel a price alert"""
@@ -116,8 +114,7 @@ async def manually_check_single_alert(alert_id: int):
     except Exception as e:
         logger.error(f"Failed to queue single alert check: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-    
-    
+
     
 @price_tracking.websocket("/ws/{email}")
 async def price_tracking_websocket(websocket: WebSocket, email: str):
@@ -125,7 +122,6 @@ async def price_tracking_websocket(websocket: WebSocket, email: str):
     await manager.connect(websocket, email, channel_type="price_alerts")
     
     try:
-        
         async with db_session_manager.session() as session:
             queries = PriceTrackingQueries(session)
             alerts = await queries.get_alerts_by_email(email)
@@ -139,7 +135,7 @@ async def price_tracking_websocket(websocket: WebSocket, email: str):
                         "target_price": a.target_price,
                         "current_best_price": a.current_best_price,
                         "current_best_platform": a.current_best_platform,
-                        # Fix: Handle status correctly
+                        "current_best_url": a.current_best_url,  # ADD THIS LINE
                         "status": a.status.value if hasattr(a.status, 'value') else a.status,
                         "next_check_at": a.next_check_at.isoformat() if a.next_check_at else None
                     }
@@ -167,7 +163,7 @@ async def price_tracking_websocket(websocket: WebSocket, email: str):
                                 "target_price": a.target_price,
                                 "current_best_price": a.current_best_price,
                                 "current_best_platform": a.current_best_platform,
-                                # Fix: Handle status correctly
+                                "current_best_url": a.current_best_url,  # ADD THIS LINE
                                 "status": a.status.value if hasattr(a.status, 'value') else a.status
                             }
                             for a in alerts
@@ -181,8 +177,7 @@ async def price_tracking_websocket(websocket: WebSocket, email: str):
         logger.error(f"WebSocket error for {email}: {e}")
         manager.disconnect(email)
         
-        
-        
+             
 
 @price_tracking.patch("/alert/{alert_id}", operation_id="update_price_alert")
 async def update_price_alert(

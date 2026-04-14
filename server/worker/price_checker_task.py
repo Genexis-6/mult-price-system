@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 # Run every 24 hours at midnight
 @broker.task(
-    schedule=[{"cron": "0 0 * * *"}],  # Run at midnight every day
+    schedule=[{"time": 120}],  # Run at midnight every day
     time_limit=7200  # 2 hours max execution time
 )
 async def check_all_price_alerts(context: Context = TaskiqDepends()):
@@ -26,13 +26,14 @@ async def check_all_price_alerts(context: Context = TaskiqDepends()):
         logger.info(f"✅ 24-hour price check completed: {triggered} alerts triggered")
         
         return {"triggered": triggered, "total": len(results)}
-
+    
+    
+    
 @broker.task
 async def check_single_alert_task(alert_id: int):
     """Task to check a single price alert and publish updates via Redis"""
     logger.info(f"🔍 Starting immediate price check for alert: {alert_id}")
     
-    # Initialize Redis if needed
     redis_client = await get_redis()
     if redis_client is None:
         await init_redis()
@@ -45,7 +46,6 @@ async def check_single_alert_task(alert_id: int):
         if alert:
             result = await service._check_single_alert(alert)
             
-            # Publish update to Redis for WebSocket
             if redis_client:
                 await redis_client.publish(
                     f"price_alerts:{alert.email}",
@@ -53,18 +53,17 @@ async def check_single_alert_task(alert_id: int):
                         "type": "alert_update",
                         "alert_id": alert.id,
                         "product_name": alert.product_name,
+                        "target_price": alert.target_price,
                         "current_best_price": alert.current_best_price,
                         "current_best_platform": alert.current_best_platform,
+                        "current_best_url": alert.current_best_url,  # ADD THIS LINE
                         "target_reached": result,
                         "timestamp": datetime.now().isoformat()
                     })
                 )
                 logger.info(f"📡 Published update for alert {alert_id}")
-            else:
-                logger.error(f"Redis not available, cannot publish update for alert {alert_id}")
             
             logger.info(f"✅ Alert {alert_id} check completed. Target reached: {result}")
-            
             return {"alert_id": alert_id, "triggered": result}
     
     return None

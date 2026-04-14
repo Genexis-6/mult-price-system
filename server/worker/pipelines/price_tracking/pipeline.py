@@ -124,7 +124,7 @@ class PriceCheckPipeline:
             all_platforms[product['platform']] = {
                 "price": product['price'],
                 "product_name": product['product_name'],
-                "url": product['url'],
+                "url": product.get('product_url', product.get('url', '')),
                 "image_url": product.get('image_url', ''),
                 "price_difference": price_diff,
                 "is_closest": product['platform'] == best['platform']
@@ -135,7 +135,7 @@ class PriceCheckPipeline:
             "target_price": target_price,
             "current_best_price": best['price'],
             "current_best_platform": best['platform'],
-            "current_best_url": best['url'],
+            "current_best_url": best.get('product_url', best.get('url', '')),  # Ensure URL is included
             "current_best_image": best.get('image_url', ''),
             "current_best_name": best.get('product_name', ''),
             "price_difference": abs(best['price'] - target_price),

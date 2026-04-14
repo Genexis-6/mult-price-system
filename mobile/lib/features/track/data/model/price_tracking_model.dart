@@ -41,6 +41,7 @@ class PriceHistory with _$PriceHistory {
   factory PriceHistory.fromJson(Map<String, dynamic> json) => _$PriceHistoryFromJson(json);
 }
 
+
 @freezed
 class BestDeal with _$BestDeal {
   const factory BestDeal({
@@ -58,7 +59,6 @@ class BestDeal with _$BestDeal {
   factory BestDeal.fromJson(Map<String, dynamic> json) =>
       _$BestDealFromJson(json);
 }
-
 
 @freezed
 class PlatformTracking with _$PlatformTracking {

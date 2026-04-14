@@ -52,21 +52,19 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
     }
   }
 
+  // MARK: - WebSocket Integration
+
   void initializePriceTrackingWebSocket(String email) {
     if (_isDisposed) return;
 
-    // Remove listener from old notifier before disposing
     if (_priceTrackingWebSocketNotifier != null) {
       try {
-        // Don't dispose if it's the same email (avoid reconnection loop)
         if (_priceTrackingWebSocketNotifier!.email == email) {
           logger.d(
             'PriceTrackingWebSocket already initialized for email: $email',
           );
           return;
         }
-
-        // Remove listener to prevent callbacks during disposal
         _priceTrackingWebSocketNotifier!.dispose();
       } catch (e) {
         logger.d('Error disposing old WebSocket notifier: $e');
@@ -74,20 +72,15 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       _priceTrackingWebSocketNotifier = null;
     }
 
-    // Small delay to ensure cleanup is complete
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_isDisposed) return;
 
       try {
-        // Create new WebSocket notifier
         _priceTrackingWebSocketNotifier = ref.read(
           priceTrackingWebSocketProvider(email).notifier,
         );
 
-        // Listen to state changes - FIX: Accept the state parameter
-        _priceTrackingWebSocketNotifier!.addListener((
-          PriceTrackingWebSocketState state,
-        ) {
+        _priceTrackingWebSocketNotifier!.addListener((_) {
           if (!_isDisposed) {
             _onPriceTrackingWebSocketStateChanged();
           }
@@ -111,6 +104,7 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
 
       switch (type) {
         case 'alert_update':
+        case 'price_alert_update':
           _updateSingleAlertFromPriceTrackingWebSocket(lastMessage);
           break;
 
@@ -138,11 +132,11 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       'Updating alert $alertId from WebSocket: target_reached=${update['target_reached']}',
     );
 
-    // Find the product in current state
     TrackedProduct? foundProduct;
     String? oldPlatform;
     bool wasInActive = false;
     bool wasInCancelled = false;
+    bool isAlreadyTriggered = false;
 
     // Check active platform tracking
     for (var platform in loadedState.platformTracking) {
@@ -172,20 +166,38 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       }
     }
 
-    // If product not found at all, we can't update
+    // Check if already in Best Deals
     if (foundProduct == null) {
+      for (var deal in loadedState.bestDeals) {
+        if (deal.id == alertId.toString()) {
+          isAlreadyTriggered = true;
+          logger.d('Alert $alertId is already triggered (in Best Deals)');
+          break;
+        }
+      }
+    }
+
+    if (foundProduct == null && !isAlreadyTriggered) {
       logger.w('Alert $alertId not found in current state');
+      return;
+    }
+
+    if (isAlreadyTriggered) {
+      logger.d(
+        'Ignoring duplicate update for already triggered alert $alertId',
+      );
       return;
     }
 
     final newCurrentPrice = (update['current_best_price'] as num?)?.toDouble();
     final newPlatform = update['current_best_platform'] as String?;
+    final newUrl = update['current_best_url'] as String?;
     final targetReached = update['target_reached'] as bool? ?? false;
 
-    // Create updated product
-    final updatedProduct = foundProduct.copyWith(
+    final updatedProduct = foundProduct!.copyWith(
       currentPrice: newCurrentPrice ?? foundProduct.currentPrice,
       platform: newPlatform ?? foundProduct.platform,
+      productUrl: newUrl ?? foundProduct.productUrl,
       isTargetReached: targetReached,
       status: targetReached
           ? 'triggered'
@@ -207,11 +219,9 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       var products = platform.products;
 
       if (platform.platform == oldPlatform && wasInActive) {
-        // Remove the old product from this platform
         products = products.where((p) => p.id != alertId.toString()).toList();
       }
 
-      // CRITICAL FIX: Only add to platform tracking if NOT triggered
       if (platform.platform == targetPlatform && !targetReached) {
         if (!products.any((p) => p.id == alertId.toString())) {
           products = [...products, updatedProduct];
@@ -235,7 +245,6 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       }
     }
 
-    // If product is NOT triggered and platform doesn't exist, create it
     if (!targetReached &&
         !updatedPlatformTracking.any((p) => p.platform == targetPlatform)) {
       updatedPlatformTracking.add(
@@ -276,7 +285,7 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       }
     }
 
-    // UPDATE BEST DEALS - Only for triggered alerts
+    // UPDATE BEST DEALS
     List<BestDeal> updatedBestDeals = List.from(loadedState.bestDeals);
     final existingDealIndex = updatedBestDeals.indexWhere(
       (d) => d.id == alertId.toString(),
@@ -299,7 +308,7 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
         savings: savings,
         savingsPercentage: savingsPercentage.toDouble(),
         triggeredAt: DateTime.now(),
-        productUrl: null,
+        productUrl: newUrl ?? updatedProduct.productUrl,
       );
 
       if (existingDealIndex >= 0) {
@@ -311,9 +320,7 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       updatedBestDeals.sort(
         (a, b) => b.savingsPercentage.compareTo(a.savingsPercentage),
       );
-      logger.d(
-        '✅ Added/Updated best deal for alert $alertId (removed from active section)',
-      );
+      logger.d('✅ Added/Updated best deal for alert $alertId');
     } else if (!targetReached && existingDealIndex >= 0) {
       updatedBestDeals.removeAt(existingDealIndex);
       logger.d('❌ Removed best deal for alert $alertId');
@@ -327,16 +334,12 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
     final activeAlerts = allActiveTriggered
         .where((p) => p.status?.toLowerCase() == 'active')
         .length;
-    final triggeredAlerts = allActiveTriggered
-        .where((p) => p.isTargetReached)
-        .length;
+    final triggeredAlerts = updatedBestDeals.length;
 
     double potentialSavings = 0;
-    for (var product in allActiveTriggered) {
-      if (product.isTargetReached &&
-          product.currentPrice != null &&
-          product.currentPrice! < product.targetPrice) {
-        potentialSavings += product.targetPrice - product.currentPrice!;
+    for (var deal in updatedBestDeals) {
+      if (deal.price < deal.targetPrice) {
+        potentialSavings += deal.targetPrice - deal.price;
       }
     }
 
@@ -364,8 +367,12 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
 
     logger.d('Refreshing from WebSocket data: ${alerts.length} alerts');
 
-    final activeAndTriggered = alerts
-        .where((a) => (a['status'] as String?)?.toLowerCase() != 'cancelled')
+    final activeOnly = alerts
+        .where((a) => (a['status'] as String?)?.toLowerCase() == 'active')
+        .toList();
+
+    final triggeredOnly = alerts
+        .where((a) => (a['status'] as String?)?.toLowerCase() == 'triggered')
         .toList();
 
     final cancelled = alerts
@@ -373,29 +380,21 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
         .toList();
 
     final platformTracking = _convertWebSocketAlertsToPlatformTracking(
-      activeAndTriggered,
+      activeOnly,
     );
     final cancelledPlatformTracking = _convertWebSocketAlertsToPlatformTracking(
       cancelled,
     );
-    final bestDeals = _generateBestDealsFromWebSocketAlerts(activeAndTriggered);
+    final bestDeals = _generateBestDealsFromWebSocketAlerts(triggeredOnly);
 
-    final totalTracked = activeAndTriggered.length;
-    final active = activeAndTriggered
-        .where((a) => (a['status'] as String?)?.toLowerCase() == 'active')
-        .length;
-    final triggered = activeAndTriggered
-        .where((a) => (a['status'] as String?)?.toLowerCase() == 'triggered')
-        .length;
+    final totalTracked = activeOnly.length;
+    final active = activeOnly.length;
+    final triggered = bestDeals.length;
 
     double savings = 0;
-    for (var alert in activeAndTriggered) {
-      if ((alert['status'] as String?)?.toLowerCase() == 'triggered') {
-        final target = (alert['target_price'] as num?)?.toDouble() ?? 0;
-        final current = (alert['current_best_price'] as num?)?.toDouble();
-        if (current != null && current < target) {
-          savings += target - current;
-        }
+    for (var deal in bestDeals) {
+      if (deal.price < deal.targetPrice) {
+        savings += deal.targetPrice - deal.price;
       }
     }
 
@@ -439,7 +438,7 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
         priceDifference: currentPrice != null ? targetPrice - currentPrice : 0,
         isTargetReached: status.toLowerCase() == 'triggered',
         lastChecked: DateTime.now(),
-        productUrl: null,
+        productUrl: alert['current_best_url'] as String?,
         status: status,
         priceHistory: [],
       );
@@ -469,34 +468,44 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
   List<BestDeal> _generateBestDealsFromWebSocketAlerts(
     List<Map<String, dynamic>> alerts,
   ) {
-    return alerts
-        .where((a) => (a['status'] as String?)?.toLowerCase() == 'triggered')
-        .map((alert) {
-          final targetPrice = (alert['target_price'] as num?)?.toDouble() ?? 0;
-          final currentPrice =
-              (alert['current_best_price'] as num?)?.toDouble() ?? targetPrice;
-          final savings = targetPrice - currentPrice;
-          final savingsPercentage = targetPrice > 0
-              ? (savings / targetPrice) * 100
-              : 0;
+    return alerts.map((alert) {
+      final targetPrice = (alert['target_price'] as num?)?.toDouble() ?? 0;
+      final currentPrice =
+          (alert['current_best_price'] as num?)?.toDouble() ?? targetPrice;
+      final savings = targetPrice - currentPrice;
+      final savingsPercentage = targetPrice > 0
+          ? (savings / targetPrice) * 100
+          : 0;
 
-          return BestDeal(
-            id: (alert['id'] as int).toString(),
-            productName: alert['product_name'] as String? ?? '',
-            price: currentPrice,
-            targetPrice: targetPrice,
-            platform: alert['current_best_platform'] as String? ?? 'unknown',
-            savings: savings,
-            savingsPercentage: savingsPercentage.toDouble(),
-            triggeredAt: DateTime.now(),
-            productUrl: null,
-          );
-        })
-        .toList()
-      ..sort((a, b) => b.savingsPercentage.compareTo(a.savingsPercentage));
+      // Clean the URL
+      final rawUrl = alert['current_best_url'] as String?;
+      final cleanUrl = rawUrl
+          ?.replaceAll('\n', '')
+          .replaceAll('\r', '')
+          .replaceAll(' ', '')
+          .trim();
+
+      logger.d(
+        'Creating BestDeal from WebSocket for ${alert['product_name']} with URL: $cleanUrl',
+      );
+
+      return BestDeal(
+        id: (alert['id'] as int).toString(),
+        productName: alert['product_name'] as String? ?? '',
+        price: currentPrice,
+        targetPrice: targetPrice,
+        platform: alert['current_best_platform'] as String? ?? 'unknown',
+        savings: savings,
+        savingsPercentage: savingsPercentage.toDouble(),
+        triggeredAt: DateTime.now(),
+        productUrl: cleanUrl, // Make sure this is set
+      );
+    }).toList()..sort(
+      (a, b) => b.savingsPercentage.compareTo(a.savingsPercentage),
+    );
   }
-
   // MARK: - API Methods
+
   Future<PriceTrackingState> _fetchUserAlertsFromApi(String email) async {
     try {
       final api = ref.read(priceTrackingApi);
@@ -505,8 +514,12 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       if (response.success && response.data != null) {
         final allAlerts = response.data!.data;
 
-        final activeAndTriggeredAlerts = allAlerts
-            .where((a) => a.status.toLowerCase() != 'cancelled')
+        final activeAlertsList = allAlerts
+            .where((a) => a.status.toLowerCase() == 'active')
+            .toList();
+
+        final triggeredAlertsList = allAlerts
+            .where((a) => a.status.toLowerCase() == 'triggered')
             .toList();
 
         final cancelledAlertsList = allAlerts
@@ -514,40 +527,29 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
             .toList();
 
         logger.d(
-          'Total: ${allAlerts.length}, Active/Triggered: ${activeAndTriggeredAlerts.length}, Cancelled: ${cancelledAlertsList.length}',
+          'Total: ${allAlerts.length}, Active: ${activeAlertsList.length}, Triggered: ${triggeredAlertsList.length}, Cancelled: ${cancelledAlertsList.length}',
         );
 
         final platformTracking = _convertAlertsToPlatformTracking(
-          activeAndTriggeredAlerts,
+          activeAlertsList,
         );
         final cancelledPlatformTracking = _convertAlertsToPlatformTracking(
           cancelledAlertsList,
         );
-        final bestDeals = _generateBestDealsFromAlerts(
-          activeAndTriggeredAlerts,
-        );
+        final bestDeals = _generateBestDealsFromAlerts(triggeredAlertsList);
 
-        final totalTrackedProducts = activeAndTriggeredAlerts.length;
+        final totalTrackedProducts = activeAlertsList.length;
+        final activeAlerts = activeAlertsList.length;
+        final triggeredAlerts = bestDeals.length;
         final cancelledAlerts = cancelledAlertsList.length;
 
-        final activeAlerts = activeAndTriggeredAlerts
-            .where((a) => a.status.toLowerCase() == 'active')
-            .length;
-
-        final triggeredAlerts = activeAndTriggeredAlerts
-            .where((a) => a.status.toLowerCase() == 'triggered')
-            .length;
-
         double potentialSavings = 0;
-        for (var alert in activeAndTriggeredAlerts) {
-          if (alert.status.toLowerCase() == 'triggered' &&
-              alert.currentBestPrice != null &&
-              alert.currentBestPrice! < alert.targetPrice) {
-            potentialSavings += alert.targetPrice - alert.currentBestPrice!;
+        for (var deal in bestDeals) {
+          if (deal.price < deal.targetPrice) {
+            potentialSavings += deal.targetPrice - deal.price;
           }
         }
 
-        // Schedule WebSocket initialization after state is set
         Future.microtask(() {
           if (!_isDisposed) {
             initializePriceTrackingWebSocket(email);
@@ -607,7 +609,7 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
         priceDifference: priceDifference,
         isTargetReached: alert.status.toLowerCase() == 'triggered',
         lastChecked: alert.updatedAt ?? alert.createdAt,
-        productUrl: null,
+        productUrl: alert.currentBestUrl,
         status: alert.status,
         priceHistory: [],
       );
@@ -635,29 +637,36 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
   }
 
   List<BestDeal> _generateBestDealsFromAlerts(List<PriceAlertResponse> alerts) {
-    return alerts
-        .where(
-          (a) =>
-              a.status.toLowerCase() == 'triggered' &&
-              a.currentBestPrice != null,
-        )
-        .map((alert) {
-          final savings = alert.targetPrice - alert.currentBestPrice!;
-          final savingsPercentage = (savings / alert.targetPrice) * 100;
+    return alerts.where((a) => a.currentBestPrice != null).map((alert) {
+        final savings = alert.targetPrice - alert.currentBestPrice!;
+        final savingsPercentage = alert.targetPrice > 0
+            ? (savings / alert.targetPrice) * 100
+            : 0;
 
-          return BestDeal(
-            id: alert.id.toString(),
-            productName: alert.productName,
-            price: alert.currentBestPrice!,
-            targetPrice: alert.targetPrice,
-            platform: alert.currentBestPlatform ?? 'unknown',
-            savings: savings,
-            savingsPercentage: savingsPercentage,
-            triggeredAt: alert.updatedAt ?? alert.createdAt,
-            productUrl: null,
-          );
-        })
-        .toList()
+        // Clean the URL - remove newlines and spaces
+        final rawUrl = alert.currentBestUrl;
+        final cleanUrl = rawUrl
+            ?.replaceAll('\n', '')
+            .replaceAll('\r', '')
+            .replaceAll(' ', '')
+            .trim();
+
+        logger.d(
+          'Creating BestDeal for ${alert.productName} with URL: $cleanUrl',
+        );
+
+        return BestDeal(
+          id: alert.id.toString(),
+          productName: alert.productName,
+          price: alert.currentBestPrice!,
+          targetPrice: alert.targetPrice,
+          platform: alert.currentBestPlatform ?? 'unknown',
+          savings: savings,
+          savingsPercentage: savingsPercentage.toDouble(),
+          triggeredAt: alert.updatedAt ?? alert.createdAt,
+          productUrl: cleanUrl, // Make sure this is set
+        );
+      }).toList()
       ..sort((a, b) => b.savingsPercentage.compareTo(a.savingsPercentage));
   }
 
@@ -738,36 +747,7 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
     }
   }
 
-  // Update an alert's target price
-  // Update an alert's target price
-  // Update an alert's target price
-  Future<bool> updateAlert({
-    required int alertId,
-    required double targetPrice,
-  }) async {
-    try {
-      final api = ref.read(priceTrackingApi);
-      final response = await api.updateAlert(
-        alertId: alertId,
-        targetPrice: targetPrice,
-      );
-
-      if (response.success && response.data != null) {
-        logger.d(
-          'Alert updated: ${response.data!.data.productName} -> ₦${response.data!.data.targetPrice}',
-        );
-        // Refresh data to show updated price
-        await refreshData();
-        return true;
-      }
-
-      logger.w('Update alert failed: ${response.message}');
-      return false;
-    } catch (e) {
-      logger.e('Failed to update alert: $e');
-      return false;
-    }
-  }
+  // MARK: - Public Methods
 
   Future<void> refreshData() async {
     if (_isDisposed) return;
@@ -871,6 +851,28 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       return false;
     } catch (e) {
       logger.e('Failed to cancel alert: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateAlert({
+    required int alertId,
+    required double targetPrice,
+  }) async {
+    try {
+      final api = ref.read(priceTrackingApi);
+      final response = await api.updateAlert(
+        alertId: alertId,
+        targetPrice: targetPrice,
+      );
+
+      if (response.success) {
+        await refreshData();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      logger.e('Failed to update alert: $e');
       return false;
     }
   }
