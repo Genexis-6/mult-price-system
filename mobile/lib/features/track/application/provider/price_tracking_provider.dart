@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/share/application/provider/app_state_provider.dart';
 import 'package:mobile/core/share/application/provider/repo_provider.dart';
 import 'package:mobile/core/utils/logger_utlis.dart';
 import 'package:mobile/features/track/application/provider/price_tracking_wesocket_provider.dart';
@@ -795,6 +796,15 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       );
 
       if (response.success) {
+        // The response.data is a CreateAlertApiResponse object
+        if (response.data != null) {
+          // Access the data property directly - it's already parsed!
+          final alertData = response.data!.data;
+          ref
+              .read(appStateProvider.notifier)
+              .storeDeviceTask(alertData.alertId.toString());
+        }
+
         await cacheUserEmail(email);
         final newState = await _fetchUserAlertsFromApi(email);
         state = AsyncValue.data(newState);
