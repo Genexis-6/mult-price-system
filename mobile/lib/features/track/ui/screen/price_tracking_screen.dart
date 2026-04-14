@@ -10,7 +10,6 @@ import 'package:mobile/features/track/application/provider/price_tracking_provid
 import 'package:mobile/features/track/application/provider/price_tracking_wesocket_provider.dart';
 import 'package:mobile/features/track/application/state/price_tracking_state.dart';
 import 'package:mobile/features/track/data/webcoket/price_tracking_websocket_service.dart';
-// import 'package:mobile/features/track/data/websocket/price_tracking_websocket_service.dart';
 import 'package:mobile/features/track/ui/widgets/best_deal_section.dart';
 import 'package:mobile/features/track/ui/widgets/cancled_section.dart';
 import 'package:mobile/features/track/ui/widgets/platform_sections.dart';
@@ -26,7 +25,6 @@ class PriceTrackingScreen extends ConsumerStatefulWidget {
 }
 
 class _PriceTrackingScreenState extends ConsumerState<PriceTrackingScreen> {
-  bool _hasCheckedForDialog = false;
   bool _webSocketInitialized = false;
 
   @override
@@ -40,17 +38,7 @@ class _PriceTrackingScreenState extends ConsumerState<PriceTrackingScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       body: trackingStateAsync.when(
-        data: (state) {
-          // Check for email dialog when state is loaded
-          if (!_hasCheckedForDialog) {
-            _hasCheckedForDialog = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _checkAndShowEmailDialog();
-            });
-          }
-
-          return _buildContent(state, isDark);
-        },
+        data: (state) => _buildContent(state, isDark),
         loading: () => const SplashScreen(),
         error: (error, _) => Center(
           child: Column(
@@ -82,19 +70,6 @@ class _PriceTrackingScreenState extends ConsumerState<PriceTrackingScreen> {
         _webSocketInitialized = true;
         logger.d('PriceTrackingScreen: WebSocket ready for email: $email');
       }
-    }
-  }
-
-  void _checkAndShowEmailDialog() {
-    final notifier = ref.read(priceTrackingProvider.notifier);
-    final hasEmail = notifier.hasCachedEmail();
-
-    if (!hasEmail) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const CreateAlertDialog(isFirstTime: true),
-      );
     }
   }
 
@@ -161,6 +136,7 @@ class _PriceTrackingScreenState extends ConsumerState<PriceTrackingScreen> {
 
     final loadedState = state.asLoaded!;
     final userEmail = loadedState.cachedEmail ?? 'guest@example.com';
+    final hasEmail = loadedState.cachedEmail != null && loadedState.cachedEmail!.isNotEmpty;
     final platformTracking = loadedState.platformTracking;
     final cancelledPlatformTracking = loadedState.cancelledPlatformTracking;
     final bestDeals = loadedState.bestDeals;
@@ -172,8 +148,13 @@ class _PriceTrackingScreenState extends ConsumerState<PriceTrackingScreen> {
 
     // Debug print
     debugPrint(
-      '🔍 BuildContent - Total: $totalTrackedProducts, Active: $activeAlerts, Triggered: $triggeredAlerts',
+      '🔍 BuildContent - Total: $totalTrackedProducts, Active: $activeAlerts, Triggered: $triggeredAlerts, HasEmail: $hasEmail',
     );
+
+    // If no email is cached, show the welcome screen
+    if (!hasEmail) {
+      return _buildWelcomeScreen(isDark);
+    }
 
     return SafeArea(
       child: RefreshIndicator(
@@ -247,6 +228,257 @@ class _PriceTrackingScreenState extends ConsumerState<PriceTrackingScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildWelcomeScreen(bool isDark) {
+    return SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(24.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Animated Icon
+              Container(
+                padding: EdgeInsets.all(24.w),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, AppColors.primary.withOpacity(0.7)],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.3),
+                      blurRadius: 20.r,
+                      spreadRadius: 5.r,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.notifications_active_rounded,
+                  color: Colors.white,
+                  size: 64.sp,
+                ),
+              ),
+              SizedBox(height: 32.h),
+              
+              // Title
+              CustomText(
+                'Track Prices Like a Pro',
+                type: TextType.headlineMedium,
+                color: isDark ? AppColors.textLight : AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 12.h),
+              
+              // Subtitle
+              CustomText(
+                'Never miss a price drop again. Set your target price and we\'ll notify you when it\'s time to buy.',
+                type: TextType.bodyMedium,
+                color: AppColors.textSecondary,
+                textAlign: TextAlign.center,
+                maxLines: 3,
+              ),
+              SizedBox(height: 32.h),
+              
+              // Features
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildFeatureChip(
+                    icon: Icons.shopping_bag_rounded,
+                    label: 'Jumia',
+                    color: const Color(0xFFFF6B00),
+                  ),
+                  SizedBox(width: 12.w),
+                  _buildFeatureChip(
+                    icon: Icons.store_rounded,
+                    label: 'Konga',
+                    color: const Color(0xFFFF0066),
+                  ),
+                  SizedBox(width: 12.w),
+                  _buildFeatureChip(
+                    icon: Icons.shopping_cart_rounded,
+                    label: 'Jiji',
+                    color: const Color(0xFF00D084),
+                  ),
+                ],
+              ),
+              SizedBox(height: 32.h),
+              
+              // Benefits
+              Container(
+                padding: EdgeInsets.all(20.w),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.surfaceDark.withOpacity(0.5) : AppColors.surface,
+                  borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(
+                    color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    _buildBenefitRow(
+                      icon: Icons.notifications_active_rounded,
+                      text: 'Real-time price alerts',
+                      color: Colors.orange,
+                      isDark: isDark,
+                    ),
+                    SizedBox(height: 12.h),
+                    _buildBenefitRow(
+                      icon: Icons.trending_down_rounded,
+                      text: 'Track price history',
+                      color: Colors.green,
+                      isDark: isDark,
+                    ),
+                    SizedBox(height: 12.h),
+                    _buildBenefitRow(
+                      icon: Icons.compare_arrows_rounded,
+                      text: 'Compare across platforms',
+                      color: Colors.blue,
+                      isDark: isDark,
+                    ),
+                    SizedBox(height: 12.h),
+                    _buildBenefitRow(
+                      icon: Icons.savings_rounded,
+                      text: 'Save money on every purchase',
+                      color: Colors.purple,
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 40.h),
+              
+              // CTA Button
+              Container(
+                width: double.infinity,
+                height: 56.h,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+                  ),
+                  borderRadius: BorderRadius.circular(16.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.4),
+                      blurRadius: 16.r,
+                      spreadRadius: 2.r,
+                      offset: Offset(0, 4.h),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => const CreateAlertDialog(isFirstTime: true),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(16.r),
+                    child: Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.rocket_launch_rounded,
+                            color: Colors.white,
+                            size: 22.sp,
+                          ),
+                          SizedBox(width: 10.w),
+                          CustomText(
+                            'Start Tracking Now',
+                            type: TextType.titleMedium,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18.sp,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              
+              // Terms
+              CustomText(
+                'By continuing, you agree to receive price alert notifications',
+                type: TextType.bodySmall,
+                color: AppColors.textSecondary,
+                textAlign: TextAlign.center,
+                fontSize: 11.sp,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(30.r),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 16.sp),
+          SizedBox(width: 6.w),
+          CustomText(
+            label,
+            type: TextType.bodySmall,
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBenefitRow({
+    required IconData icon,
+    required String text,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(8.w),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+          child: Icon(icon, color: color, size: 18.sp),
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: CustomText(
+            text,
+            type: TextType.bodyMedium,
+            color: isDark ? AppColors.textLight : AppColors.textPrimary,
+          ),
+        ),
+        Icon(
+          Icons.check_circle_rounded,
+          color: Colors.green,
+          size: 18.sp,
+        ),
+      ],
     );
   }
 

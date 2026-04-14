@@ -10,6 +10,7 @@ class PlatformTrackingCard extends StatelessWidget {
   final IconData platformIcon;
   final VoidCallback onTap;
   final VoidCallback? onDelete;
+  final VoidCallback? onEdit;
 
   const PlatformTrackingCard({
     super.key,
@@ -18,6 +19,7 @@ class PlatformTrackingCard extends StatelessWidget {
     required this.platformIcon,
     required this.onTap,
     this.onDelete,
+    this.onEdit,
   });
 
   @override
@@ -26,10 +28,7 @@ class PlatformTrackingCard extends StatelessWidget {
     final hasCurrentPrice = product.currentPrice != null;
 
     return Container(
-      constraints: BoxConstraints(
-        minHeight: 170.h,
-        maxHeight: 190.h,
-      ),
+      constraints: BoxConstraints(minHeight: 170.h, maxHeight: 190.h),
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : Colors.white,
         borderRadius: BorderRadius.circular(16.r),
@@ -64,14 +63,20 @@ class PlatformTrackingCard extends StatelessWidget {
                         color: platformColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8.r),
                       ),
-                      child: Icon(platformIcon, color: platformColor, size: 16.sp),
+                      child: Icon(
+                        platformIcon,
+                        color: platformColor,
+                        size: 16.sp,
+                      ),
                     ),
                     SizedBox(width: 8.w),
                     Expanded(
                       child: CustomText(
                         product.productName,
                         type: TextType.bodyLarge,
-                        color: isDark ? AppColors.textLight : AppColors.textPrimary,
+                        color: isDark
+                            ? AppColors.textLight
+                            : AppColors.textPrimary,
                         fontWeight: FontWeight.w600,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -104,7 +109,7 @@ class PlatformTrackingCard extends StatelessWidget {
     final status = product.status?.toLowerCase() ?? 'active';
     Color badgeColor;
     String badgeText;
-    
+
     switch (status) {
       case 'triggered':
         badgeColor = Colors.green;
@@ -118,7 +123,7 @@ class PlatformTrackingCard extends StatelessWidget {
         badgeColor = Colors.grey;
         badgeText = status.toUpperCase();
     }
-    
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
       decoration: BoxDecoration(
@@ -274,7 +279,10 @@ class PlatformTrackingCard extends StatelessWidget {
   }
 
   Widget _buildProgressBar(bool isDark) {
-    final progress = (product.currentPrice! / product.targetPrice).clamp(0.0, 2.0);
+    final progress = (product.currentPrice! / product.targetPrice).clamp(
+      0.0,
+      2.0,
+    );
     final isPriceLower = product.currentPrice! <= product.targetPrice;
     final percentage = ((1 - progress) * 100).abs();
 
@@ -297,7 +305,7 @@ class PlatformTrackingCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             CustomText(
-              isPriceLower 
+              isPriceLower
                   ? '${percentage.toStringAsFixed(0)}% below target'
                   : '${percentage.toStringAsFixed(0)}% above target',
               type: TextType.bodySmall,
@@ -345,6 +353,23 @@ class PlatformTrackingCard extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Edit button
+              if (onEdit != null)
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onEdit,
+                    borderRadius: BorderRadius.circular(20.r),
+                    child: Container(
+                      padding: EdgeInsets.all(6.w),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        color: AppColors.primary.withOpacity(0.7),
+                        size: 16.sp,
+                      ),
+                    ),
+                  ),
+                ),
               // Delete button
               if (onDelete != null)
                 Material(

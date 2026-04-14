@@ -6,6 +6,7 @@ import 'package:mobile/core/share/ui/widgets/custom_text.dart';
 import 'package:mobile/features/track/data/model/price_tracking_model.dart';
 import 'package:mobile/features/track/ui/widgets/platform_tracking_cards.dart';
 import 'package:mobile/features/track/ui/widgets/delete_alert_dialog.dart';
+import 'package:mobile/features/track/ui/widgets/update_price_dialog.dart';
 
 class PlatformSection extends ConsumerWidget {
   final PlatformTracking platform;
@@ -44,6 +45,7 @@ class PlatformSection extends ConsumerWidget {
                     product: product,
                     platformColor: platform.platformColor,
                     platformIcon: platform.platformIcon,
+                    onEdit: () => _showEditDialog(context, product),
                     onTap: () {
                       // Navigate to product details
                     },
@@ -55,6 +57,13 @@ class PlatformSection extends ConsumerWidget {
           ),
         SizedBox(height: 8.h),
       ],
+    );
+  }
+
+  void _showEditDialog(BuildContext context, TrackedProduct product) {
+    showDialog(
+      context: context,
+      builder: (context) => UpdateAlertDialog(product: product),
     );
   }
 
@@ -128,7 +137,9 @@ class PlatformSection extends ConsumerWidget {
       height: 120.h,
       margin: EdgeInsets.symmetric(horizontal: 20.w),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark.withOpacity(0.3) : AppColors.surface,
+        color: isDark
+            ? AppColors.surfaceDark.withOpacity(0.3)
+            : AppColors.surface,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
           color: isDark ? Colors.grey[800]! : Colors.grey[300]!,

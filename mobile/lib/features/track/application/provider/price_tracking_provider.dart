@@ -200,11 +200,9 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
 
     final targetPlatform = newPlatform ?? oldPlatform ?? 'unknown';
 
-    // UPDATE PLATFORM TRACKING - Remove from old location and add to new if platform changed
+    // UPDATE PLATFORM TRACKING
     List<PlatformTracking> updatedPlatformTracking = [];
-    List<PlatformTracking> updatedCancelledPlatformTracking = [];
 
-    // Process active platforms
     for (var platform in loadedState.platformTracking) {
       var products = platform.products;
 
@@ -213,12 +211,11 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
         products = products.where((p) => p.id != alertId.toString()).toList();
       }
 
+      // CRITICAL FIX: Only add to platform tracking if NOT triggered
       if (platform.platform == targetPlatform && !targetReached) {
-        // Add updated product to this platform if it's still active (not triggered)
         if (!products.any((p) => p.id == alertId.toString())) {
           products = [...products, updatedProduct];
         } else {
-          // Update existing
           products = products
               .map((p) => p.id == alertId.toString() ? updatedProduct : p)
               .toList();
@@ -238,7 +235,7 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       }
     }
 
-    // If target platform doesn't exist yet and product is active, create it
+    // If product is NOT triggered and platform doesn't exist, create it
     if (!targetReached &&
         !updatedPlatformTracking.any((p) => p.platform == targetPlatform)) {
       updatedPlatformTracking.add(
@@ -255,7 +252,9 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       );
     }
 
-    // Process cancelled platforms
+    // UPDATE CANCELLED PLATFORM TRACKING
+    List<PlatformTracking> updatedCancelledPlatformTracking = [];
+
     for (var platform in loadedState.cancelledPlatformTracking) {
       var products = platform.products;
 
@@ -285,9 +284,11 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
 
     if (targetReached &&
         newCurrentPrice != null &&
-        newCurrentPrice < updatedProduct.targetPrice) {
+        newCurrentPrice <= updatedProduct.targetPrice) {
       final savings = updatedProduct.targetPrice - newCurrentPrice;
-      final savingsPercentage = (savings / updatedProduct.targetPrice) * 100;
+      final savingsPercentage = updatedProduct.targetPrice > 0
+          ? (savings / updatedProduct.targetPrice) * 100
+          : 0;
 
       final newDeal = BestDeal(
         id: alertId.toString(),
@@ -296,7 +297,7 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
         targetPrice: updatedProduct.targetPrice,
         platform: newPlatform ?? updatedProduct.platform,
         savings: savings,
-        savingsPercentage: savingsPercentage,
+        savingsPercentage: savingsPercentage.toDouble(),
         triggeredAt: DateTime.now(),
         productUrl: null,
       );
@@ -318,7 +319,7 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       logger.d('❌ Removed best deal for alert $alertId');
     }
 
-    // Recalculate overall stats
+    // RECALCULATE OVERALL STATS
     final allActiveTriggered = updatedPlatformTracking
         .expand((p) => p.products)
         .toList();
@@ -734,6 +735,30 @@ class PriceTrackingProvider extends AsyncNotifier<PriceTrackingState> {
       }
     } catch (e) {
       throw Exception('Failed to clear cached email: $e');
+    }
+  }
+
+  // Update an alert's target price
+  Future<bool> updateAlert({
+    required int alertId,
+    required double targetPrice,
+  }) async {
+    try {
+      final api = ref.read(priceTrackingApi);
+      final response = await api.updateAlert(
+        alertId: alertId,
+        targetPrice: targetPrice,
+      );
+
+      if (response.success) {
+        // Refresh data to show updated price
+        await refreshData();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      logger.e('Failed to update alert: $e');
+      return false;
     }
   }
 
