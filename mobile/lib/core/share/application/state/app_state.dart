@@ -48,4 +48,9 @@ extension AppStateExtension on AppState {
       error: (message) => message,
     );
   }
+
+  // Helper to get registered state safely
+  _Registered? get asRegistered {
+    return this is _Registered ? this as _Registered : null;
+  }
 }

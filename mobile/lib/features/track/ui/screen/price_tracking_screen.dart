@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mobile/core/share/ui/widgets/custom_snack_bar.dart';
 import 'package:mobile/core/share/ui/widgets/custom_text.dart';
 import 'package:mobile/core/share/ui/widgets/splash_widget.dart';
 import 'package:mobile/core/theme/app_color.dart';
+import 'package:mobile/core/utils/logger_utlis.dart';
 import 'package:mobile/features/track/application/provider/price_tracking_provider.dart';
+import 'package:mobile/features/track/application/provider/price_tracking_wesocket_provider.dart';
 import 'package:mobile/features/track/application/state/price_tracking_state.dart';
+import 'package:mobile/features/track/data/webcoket/price_tracking_websocket_service.dart';
+// import 'package:mobile/features/track/data/websocket/price_tracking_websocket_service.dart';
 import 'package:mobile/features/track/ui/widgets/best_deal_section.dart';
 import 'package:mobile/features/track/ui/widgets/cancled_section.dart';
 import 'package:mobile/features/track/ui/widgets/platform_sections.dart';
@@ -22,11 +27,15 @@ class PriceTrackingScreen extends ConsumerStatefulWidget {
 
 class _PriceTrackingScreenState extends ConsumerState<PriceTrackingScreen> {
   bool _hasCheckedForDialog = false;
+  bool _webSocketInitialized = false;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final trackingStateAsync = ref.watch(priceTrackingProvider);
+
+    // Initialize WebSocket when state is loaded and email is available
+    _initializeWebSocketIfNeeded();
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
@@ -42,8 +51,7 @@ class _PriceTrackingScreenState extends ConsumerState<PriceTrackingScreen> {
 
           return _buildContent(state, isDark);
         },
-        loading: () =>
-            const SplashScreen(), // or Center(child: CircularProgressIndicator())
+        loading: () => const SplashScreen(),
         error: (error, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -62,6 +70,21 @@ class _PriceTrackingScreenState extends ConsumerState<PriceTrackingScreen> {
     );
   }
 
+  void _initializeWebSocketIfNeeded() {
+    if (_webSocketInitialized) return;
+    
+    final trackingState = ref.read(priceTrackingProvider).value;
+    if (trackingState != null && trackingState.isLoaded) {
+      final loadedState = trackingState.asLoaded!;
+      final email = loadedState.cachedEmail;
+      
+      if (email != null && email.isNotEmpty) {
+        _webSocketInitialized = true;
+        logger.d('PriceTrackingScreen: WebSocket ready for email: $email');
+      }
+    }
+  }
+
   void _checkAndShowEmailDialog() {
     final notifier = ref.read(priceTrackingProvider.notifier);
     final hasEmail = notifier.hasCachedEmail();
@@ -73,6 +96,62 @@ class _PriceTrackingScreenState extends ConsumerState<PriceTrackingScreen> {
         builder: (context) => const CreateAlertDialog(isFirstTime: true),
       );
     }
+  }
+
+  Widget _buildConnectionStatus(String email) {
+    final wsState = ref.watch(priceTrackingWebSocketProvider(email));
+    
+    Color statusColor;
+    String tooltip;
+    
+    switch (wsState.connectionState) {
+      case PriceTrackingWebSocketConnectionState.connected:
+        statusColor = Colors.green;
+        tooltip = 'Real-time updates connected';
+        break;
+      case PriceTrackingWebSocketConnectionState.connecting:
+        statusColor = Colors.orange;
+        tooltip = 'Connecting to real-time updates...';
+        break;
+      case PriceTrackingWebSocketConnectionState.error:
+        statusColor = Colors.red;
+        tooltip = 'Connection error - tap to reconnect';
+        break;
+      default:
+        statusColor = Colors.grey;
+        tooltip = 'Real-time updates disconnected';
+    }
+    
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: () {
+          if (wsState.connectionState != PriceTrackingWebSocketConnectionState.connected &&
+              wsState.connectionState != PriceTrackingWebSocketConnectionState.connecting) {
+            ref.read(priceTrackingProvider.notifier).reconnectWebSocket();
+            CustomSnackbar.info(
+              context: context,
+              message: 'Reconnecting to real-time updates...',
+            );
+          }
+        },
+        child: Container(
+          width: 10.w,
+          height: 10.w,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: statusColor,
+            boxShadow: [
+              BoxShadow(
+                color: statusColor.withOpacity(0.5),
+                blurRadius: 6.r,
+                spreadRadius: 1.r,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildContent(PriceTrackingState state, bool isDark) {
@@ -88,13 +167,12 @@ class _PriceTrackingScreenState extends ConsumerState<PriceTrackingScreen> {
     final totalTrackedProducts = loadedState.totalTrackedProducts;
     final activeAlerts = loadedState.activeAlerts;
     final triggeredAlerts = loadedState.triggeredAlerts;
-    final cancelledAlerts = loadedState.cancelledAlerts;
     final potentialSavings = loadedState.potentialSavings;
     final isRefreshing = loadedState.isRefreshing;
 
     // Debug print
     debugPrint(
-      '🔍 BuildContent - Total: $totalTrackedProducts, Active: $activeAlerts, Triggered: $triggeredAlerts, Cancelled: $cancelledAlerts',
+      '🔍 BuildContent - Total: $totalTrackedProducts, Active: $activeAlerts, Triggered: $triggeredAlerts',
     );
 
     return SafeArea(
@@ -105,19 +183,31 @@ class _PriceTrackingScreenState extends ConsumerState<PriceTrackingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TrackingHeader(
-                userEmail: userEmail,
-                totalTrackedProducts: totalTrackedProducts,
-                activeAlerts: activeAlerts,
-                triggeredAlerts: triggeredAlerts,
-                potentialSavings: potentialSavings,
-                onAddAlert: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) =>
-                        const CreateAlertDialog(isFirstTime: false),
-                  );
-                },
+              // Header with connection status
+              Stack(
+                children: [
+                  TrackingHeader(
+                    userEmail: userEmail,
+                    totalTrackedProducts: totalTrackedProducts,
+                    activeAlerts: activeAlerts,
+                    triggeredAlerts: triggeredAlerts,
+                    potentialSavings: potentialSavings,
+                    onAddAlert: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) =>
+                            const CreateAlertDialog(isFirstTime: false),
+                      );
+                    },
+                  ),
+                  // Connection status indicator
+                  if (loadedState.cachedEmail != null && loadedState.cachedEmail!.isNotEmpty)
+                    Positioned(
+                      top: 16.h,
+                      right: 70.w,
+                      child: _buildConnectionStatus(loadedState.cachedEmail!),
+                    ),
+                ],
               ),
               SizedBox(height: 8.h),
 
