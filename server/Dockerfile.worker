@@ -1,4 +1,4 @@
-# Dockerfile - Application image
+# Dockerfile.worker - Worker image
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -15,8 +15,7 @@ RUN apt-get update && apt-get install -y \
 COPY --from=base-setup /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Don't set these - they'll come from .env or docker-compose
-# The .env file has TRANSFORMERS_CACHE=/tmp/huggingface_cache
+# Don't set these - they'll come from .env
 
 # Create logs directory
 RUN mkdir -p /app/logs
@@ -24,8 +23,8 @@ RUN mkdir -p /app/logs
 # Copy application code
 COPY . .
 
-# Run as root for development (fixes permission issues)
+# Run as root for development
 # USER appuser is REMOVED
 
-# Run the application
-CMD ["fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
+# Run the worker
+CMD ["taskiq", "worker", "worker.main:broker", "--workers", "4", "--log-level", "INFO"]
