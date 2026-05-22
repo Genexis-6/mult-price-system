@@ -1,24 +1,20 @@
+// home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:flutter_screenutil.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mobile/core/share/ui/widgets/reconnect_banner.dart';
 import 'package:mobile/features/home/application/provider/recent_searches_provider.dart';
-// import 'package:mobile/features/home/application/state/home_state.dart';
-// import 'package:mobile/core/share/application/provider/repo_provider.dart';
 import 'package:mobile/features/home/data/model/task_status_model.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:mobile/core/share/data/model/product_model.dart';
-import 'package:mobile/core/share/ui/widgets/custom_scafold.dart';
 import 'package:mobile/core/share/ui/widgets/custom_snack_bar.dart';
 import 'package:mobile/core/theme/app_color.dart';
 import 'package:mobile/features/home/application/provider/home_provider.dart';
-// import 'package:mobile/features/home/application/state/home_state.dart';
-import 'package:mobile/features/home/data/model/dummy_data.dart';
 import 'package:mobile/features/home/data/model/news_model.dart';
 import 'package:mobile/features/home/ui/widgets/widgets.dart';
+import 'package:mobile/core/utils/logger_utlis.dart';
 import '../../../../core/share/application/provider/news_provider.dart';
 import '../../../../core/share/ui/widgets/custom_app_bar.dart';
-import '../../../../core/share/ui/widgets/widget.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -28,15 +24,78 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = false;
   double _scrollOffset = 0;
+  bool _webSocketActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    
+    // Check if there's an active task and reconnect WebSocket
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndReconnectIfNeeded();
+    });
+  }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
+    // ✅ DO NOT call _disconnectWebSocket() here
+    // The HomeProvider.dispose() will clean up the WebSocket automatically
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // ✅ Don't use ref if the widget is not mounted
+    if (!mounted) return;
+    
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App came to foreground - reconnect WebSocket if needed
+        ref.read(homeProvider.notifier).reconnectWebSocketIfNeeded();
+        logger.d('📱 HomeScreen: App resumed, reconnecting WebSocket if needed');
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // App went to background - disconnect WebSocket
+        ref.read(homeProvider.notifier).disconnectWebSocket();
+        logger.d('📱 HomeScreen: App paused, disconnecting WebSocket');
+        break;
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+
+  void _checkAndReconnectIfNeeded() {
+    final homeState = ref.read(homeProvider);
+    homeState.whenData((state) {
+      state.maybeWhen(
+        reconnecting: (taskId, query) {
+          _webSocketActive = true;
+          logger.d('HomeScreen: Active task found, WebSocket will be active');
+        },
+        taskProcessing: (taskId, query, progress, message) {
+          _webSocketActive = true;
+          logger.d('HomeScreen: Task processing, WebSocket active');
+        },
+        taskCreated: (taskId, query) {
+          _webSocketActive = true;
+          logger.d('HomeScreen: Task created, WebSocket active');
+        },
+        orElse: () {
+          _webSocketActive = false;
+        },
+      );
+    });
   }
 
   @override
@@ -51,7 +110,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         });
         return false;
       },
-      child: GradientStyledScaffold(
+      child: Scaffold(
         body: CustomScrollView(
           slivers: [
             CustomAppBar(
@@ -71,9 +130,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   isLoading: _isLoading,
                 ),
 
-                // Active Task Card - Always visible during task lifecycle
+                // Active Task Card
                 homeStateAsync.when(
                   data: (state) {
+                    _updateWebSocketState(state);
+                    
                     return state.when(
                       initial: () => _buildSkeletonActiveTaskCard(
                         message: "No active task",
@@ -99,8 +160,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               message: message,
                               timestamp: DateTime.now(),
                             ),
-                            // onCancel: () =>
-                            //     ref.read(homeProvider.notifier).cancelTask(),
                           ),
                       taskCompleted: (taskId, query, result) {
                         List<Product> products = [];
@@ -115,13 +174,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           onDismiss: () =>
                               ref.read(homeProvider.notifier).cancelTask(),
                           onProductTap: (product) {
-                            // Handle product tap - open URL or show details
                             CustomSnackbar.info(
                               context: context,
                               message: 'Opening ${product.productName}',
                             );
-                            // You can launch URL here
-                            // launchUrl(Uri.parse(product.productUrl));
                           },
                         );
                       },
@@ -137,33 +193,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   error: (error, _) => _buildErrorCard(error.toString()),
                 ),
 
-                // Consumer(
-                //   builder: (context, ref, child) {
-                //     final newsAsync = ref.watch(topHeadlinesProvider);
+                Consumer(
+                  builder: (context, ref, child) {
+                    final newsAsync = ref.watch(topHeadlinesProvider);
 
-                //     return newsAsync.when(
-                //       data: (newsList) {
-                //         if (newsList.isEmpty) {
-                //           return const SizedBox.shrink();
-                //         }
-                //         return NewsCarousel(
-                //           newsList: newsList,
-                //           onNewsTap: _handleNewsTap,
-                //         );
-                //       },
-                //       loading: () => const Center(
-                //         child: Padding(
-                //           padding: EdgeInsets.symmetric(vertical: 20),
-                //           child: CircularProgressIndicator(),
-                //         ),
-                //       ),
-                //       error: (error, stack) => const SizedBox.shrink(),
-                //     );
-                //   },
-                // ),
-               
-               
-               
+                    return newsAsync.when(
+                      data: (newsList) {
+                        if (newsList.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return NewsCarousel(
+                          newsList: newsList,
+                          onNewsTap: _handleNewsTap,
+                        );
+                      },
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                      error: (error, stack) => const SizedBox.shrink(),
+                    );
+                  },
+                ),
                
                 RecentSearchesWidget(onSearchTap: _handleRecentSearchTap),
                 SizedBox(height: 20.h),
@@ -175,7 +228,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  // Skeleton wrapper for ActiveTaskCard
+  void _updateWebSocketState(dynamic state) {
+    state.maybeWhen(
+      reconnecting: (_, __) => _webSocketActive = true,
+      taskProcessing: (_, __, ___, ____) => _webSocketActive = true,
+      taskCreated: (_, __) => _webSocketActive = true,
+      orElse: () => _webSocketActive = false,
+    );
+  }
+
   Widget _buildSkeletonActiveTaskCard({
     required String message,
     required bool showProgress,
@@ -184,7 +245,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       enabled: showProgress,
       effect: const ShimmerEffect(
         duration: Duration(seconds: 1),
-        // intensity: 0.5,
       ),
       child: ActiveTaskCard(
         task: TaskStatus(
@@ -194,8 +254,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           message: message,
           timestamp: DateTime.now(),
         ),
-        // onCancel: () {},
-        // message: message,
       ),
     );
   }
@@ -280,7 +338,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
 
-    // Check if a task is currently processing
     final homeState = ref.read(homeProvider);
     bool isTaskProcessing = false;
 
@@ -307,7 +364,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       setState(() => _isLoading = true);
       var res = await ref.read(homeProvider.notifier).predict(query: query);
 
-      // Add to recent searches when search is successful
       if (res.success) {
         final resultCount = res.data?['result']?.length ?? 0;
         ref
@@ -315,7 +371,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             .addRecentSearch(query, resultCount: resultCount);
       }
 
-      // ignore: use_build_context_synchronously
       CustomSnackbar.info(context: context, message: res.message);
     } finally {
       setState(() => _isLoading = false);

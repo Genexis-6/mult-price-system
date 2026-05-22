@@ -1,7 +1,9 @@
+// price_tracking_wesocket_provider.dart
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/share/application/provider/app_state_provider.dart';
 import 'package:mobile/features/track/data/webcoket/price_tracking_websocket_service.dart';
-// import 'package:mobile/features/track/data/websocket/price_tracking_websocket_service.dart';
+import 'package:mobile/core/utils/logger_utlis.dart';
 
 final priceTrackingWebSocketProvider = StateNotifierProvider.family<PriceTrackingWebSocketNotifier, PriceTrackingWebSocketState, String>(
   (ref, email) => PriceTrackingWebSocketNotifier(
@@ -39,6 +41,8 @@ class PriceTrackingWebSocketNotifier extends StateNotifier<PriceTrackingWebSocke
   final Ref ref;
   PriceTrackingWebSocketService? _webSocket;
   bool _isDisposed = false;
+  StreamSubscription? _stateSubscription;
+  StreamSubscription? _messageSubscription;
   
   PriceTrackingWebSocketNotifier({
     required this.email,
@@ -50,21 +54,20 @@ class PriceTrackingWebSocketNotifier extends StateNotifier<PriceTrackingWebSocke
   void _initialize() {
     if (_isDisposed) return;
     
-    // final appState = ref.read(appStateProvider);
-    final baseUrl =  'http://10.0.2.2:8000';
+    final baseUrl = 'http://10.0.2.2:8000';
     
     _webSocket = PriceTrackingWebSocketService(
       email: email,
       baseUrl: baseUrl,
     );
     
-    _webSocket!.onStateChange.listen((state) {
+    _stateSubscription = _webSocket!.onStateChange.listen((state) {
       if (!_isDisposed && mounted) {
         this.state = this.state.copyWith(connectionState: state);
       }
     });
     
-    _webSocket!.onMessage.listen((message) {
+    _messageSubscription = _webSocket!.onMessage.listen((message) {
       if (!_isDisposed && mounted) {
         _handleMessage(message);
       }
@@ -134,7 +137,10 @@ class PriceTrackingWebSocketNotifier extends StateNotifier<PriceTrackingWebSocke
   @override
   void dispose() {
     _isDisposed = true;
+    _stateSubscription?.cancel();
+    _messageSubscription?.cancel();
     _webSocket?.dispose();
+    _webSocket = null;
     super.dispose();
   }
 }

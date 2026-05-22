@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:mobile/core/utils/app_ws_url_config.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'package:mobile/core/utils/logger_utlis.dart';
@@ -52,11 +53,8 @@ class PriceTrackingWebSocketService {
     _setState(PriceTrackingWebSocketConnectionState.connecting);
 
     try {
-      final wsUrl = baseUrl
-          .replaceFirst('http://', 'ws://')
-          .replaceFirst('https://', 'wss://');
 
-      final uri = Uri.parse('$wsUrl/v1/price-tracking/ws/$email');
+      final uri = Uri.parse('${AppWsUrlConfig.wsUrl}/v1/price-tracking/ws/$email');
       logger.d('PriceTrackingWebSocket connecting to: $uri');
 
       _channel = WebSocketChannel.connect(uri);

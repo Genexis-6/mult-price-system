@@ -31,7 +31,7 @@ class PlatformSection extends ConsumerWidget {
           _buildEmptyState()
         else
           SizedBox(
-            height: 230.h,
+            height: 240.h,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -39,7 +39,7 @@ class PlatformSection extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final product = platform.products[index];
                 return Container(
-                  width: 280.w,
+                  width: 290.w,
                   margin: EdgeInsets.only(right: 12.w, bottom: 8.h, top: 4.h),
                   child: PlatformTrackingCard(
                     product: product,

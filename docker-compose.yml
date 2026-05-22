@@ -38,91 +38,84 @@ services:
     networks:
       - mult-price-network
 
-  # FastAPI Application
+  base-setup:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.base
+    image: mult-price-base:latest
+    volumes:
+      - venv_cache:/opt/venv
+      - model_cache:/tmp/model_cache  # Changed to writable location
+    networks:
+      - mult-price-network
+
   fastapi:
-    container_name: mult-price-fastapi
     build:
       context: ./server
       dockerfile: Dockerfile
+    container_name: mult-price-fastapi
     restart: always
     ports:
-      - "8000:8000"
+      - "8000:8000" 
     env_file:
       - ./.env
     environment:
-      # Override localhost with container names
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_BROKER_URL=redis://redis:6379/0
       - REDIS_BACKEND_URL=redis://redis:6379/1
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - PHOS=0.0.0.0
+      - HOST=0.0.0.0
       - PORT=8000
+      # DON'T override these - let .env values be used
+      # - TRANSFORMERS_CACHE and HF_HOME will come from .env
+      - PYTHONUNBUFFERED=1
     volumes:
       - ./server:/app
+      - venv_cache:/opt/venv
       - ./logs:/app/logs
+      - model_cache:/tmp/model_cache  # Changed to writable location
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      base-setup:
+        condition: service_completed_successfully
     command: fastapi run app/main.py --host 0.0.0.0 --port 8000 --reload
     networks:
       - mult-price-network
 
-  # Taskiq Worker (handles background tasks)
   taskiq-worker:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.worker
     container_name: mult-price-taskiq-worker
-    build:
-      context: ./server
-      dockerfile: Dockerfile
     restart: always
     env_file:
       - ./.env
     environment:
-      # Override localhost with container names
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_BROKER_URL=redis://redis:6379/0
       - REDIS_BACKEND_URL=redis://redis:6379/1
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # DON'T override these - let .env values be used
+      # - TRANSFORMERS_CACHE and HF_HOME will come from .env
+      - PYTHONUNBUFFERED=1
     volumes:
       - ./server:/app
+      - venv_cache:/opt/venv
       - ./logs:/app/logs
+      - model_cache:/tmp/model_cache  # Changed to writable location
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      base-setup:
+        condition: service_completed_successfully
     command: taskiq worker worker.main:broker --workers 4 --log-level INFO
-    networks:
-      - mult-price-network
-
-  # Taskiq Scheduler (for scheduled/cron tasks like daily price checks)
-  taskiq-scheduler:
-    container_name: mult-price-taskiq-scheduler
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    restart: always
-    env_file:
-      - ./.env
-    environment:
-      # Override localhost with container names
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - REDIS_BROKER_URL=redis://redis:6379/0
-      - REDIS_BACKEND_URL=redis://redis:6379/1
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    volumes:
-      - ./server:/app
-      - ./logs:/app/logs
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    command: taskiq scheduler worker.main:broker --log-level INFO
     networks:
       - mult-price-network
 
@@ -131,5 +124,11 @@ networks:
     driver: bridge
 
 volumes:
+  venv_cache:
+    name: mult_price_venv_cache
+  model_cache:
+    name: mult_price_model_cache
   postgres_data:
+    name: mult_price_postgres_data
   redis_data:
+    name: mult_price_redis_data

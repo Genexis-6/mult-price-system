@@ -1,3 +1,4 @@
+// home_provider.dart
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/share/application/provider/app_state_provider.dart';
@@ -94,6 +95,40 @@ class HomeProvider extends AsyncNotifier<HomeState> {
     }
 
     return const HomeState.initial();
+  }
+
+  // ADD THESE TWO METHODS:
+
+  /// Disconnect WebSocket without canceling the task
+  void disconnectWebSocket() {
+    _webSocketSubscription?.cancel();
+    _webSocketSubscription = null;
+    logger.d('🔌 HomeProvider: WebSocket disconnected');
+  }
+
+  /// Reconnect WebSocket if there's an active task
+  Future<void> reconnectWebSocketIfNeeded() async {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    final taskId = currentState.maybeWhen(
+      taskProcessing: (taskId, _, _, _) => taskId,
+      reconnecting: (taskId, _) => taskId,
+      taskCreated: (taskId, _) => taskId,
+      orElse: () => null,
+    );
+
+    final query = currentState.maybeWhen(
+      taskProcessing: (_, query, _, _) => query,
+      reconnecting: (_, query) => query,
+      taskCreated: (_, query) => query,
+      orElse: () => null,
+    );
+
+    if (taskId != null && query != null && _webSocketSubscription == null) {
+      logger.d('🔄 HomeProvider: Reconnecting WebSocket for task: $taskId');
+      _connectToWebSocket(taskId, query);
+    }
   }
 
   Future<void> reconnectToTask() async {
@@ -234,7 +269,6 @@ class HomeProvider extends AsyncNotifier<HomeState> {
               ),
             );
             await _storageService.clearLastTask();
-            // Prevent further reconnection attempts
             final webSocketService = ref.read(websocketServiceProvider);
             webSocketService.preventReconnect();
           }
@@ -318,7 +352,6 @@ class HomeProvider extends AsyncNotifier<HomeState> {
         ),
       );
       _storageService.clearLastTask();
-      // Prevent further reconnection
       final webSocketService = ref.read(websocketServiceProvider);
       webSocketService.preventReconnect();
     } else if (statusLower == 'failed') {

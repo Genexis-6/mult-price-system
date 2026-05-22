@@ -1,8 +1,11 @@
+// websocket_service.dart (prediction)
 import 'dart:async';
 import 'dart:convert';
+import 'package:mobile/core/utils/app_ws_url_config.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:mobile/features/home/data/model/task_status_model.dart';
+import 'package:mobile/core/utils/logger_utlis.dart';
 
 class WebSocketService {
   final String baseUrl;
@@ -27,9 +30,9 @@ class WebSocketService {
 
     _reconnectAttempts = 0;
     _preventReconnect = false;
-    final wsUrl = Uri.parse('$baseUrl/v1/predict/ws/$taskId');
-    print('🔌 Connecting to WebSocket: $wsUrl');
-    print('📡 Task ID for WebSocket: $taskId');
+    final wsUrl = Uri.parse('${AppWsUrlConfig.wsUrl}/v1/predict/ws/$taskId'); // Changed path
+    logger.d('🔌 Connecting to Prediction WebSocket: $wsUrl');
+    logger.d('📡 Task ID for WebSocket: $taskId');
 
     _controller = StreamController<TaskStatus>.broadcast();
 
@@ -41,17 +44,22 @@ class WebSocketService {
         (data) {
           _reconnectAttempts = 0;
           _isConnected = true;
-          print('✅ WebSocket connected and receiving data');
-          print('📨 WebSocket message received: $data');
+          logger.d('✅ Prediction WebSocket connected and receiving data');
+          logger.d('📨 WebSocket message received: $data');
 
           try {
             final Map<String, dynamic> jsonData;
             if (data is String) {
+              // Skip plain text messages like 'pong'
+              if (data == 'pong') {
+                logger.d('💓 Prediction WebSocket pong received');
+                return;
+              }
               jsonData = jsonDecode(data);
             } else if (data is Map) {
               jsonData = Map<String, dynamic>.from(data);
             } else {
-              print('❌ Unknown data type: ${data.runtimeType}');
+              logger.e('❌ Unknown data type: ${data.runtimeType}');
               return;
             }
 
@@ -64,21 +72,21 @@ class WebSocketService {
               result: jsonData['result'],
             );
 
-            print('✅ Parsed TaskStatus: status=${taskStatus.status}, progress=${taskStatus.progress}, message=${taskStatus.message}');
+            logger.d('✅ Parsed TaskStatus: status=${taskStatus.status}, progress=${taskStatus.progress}, message=${taskStatus.message}');
             _controller?.add(taskStatus);
           } catch (e) {
-            print('❌ Error parsing message: $e');
+            logger.e('❌ Error parsing message: $e');
           }
         },
         onError: (error) {
-          print('❌ WebSocket error: $error');
+          logger.e('❌ Prediction WebSocket error: $error');
           _isConnected = false;
           if (!_isManuallyClosed && !_preventReconnect) {
             _scheduleReconnect(taskId);
           }
         },
         onDone: () {
-          print('⚠️ WebSocket closed');
+          logger.d('⚠️ Prediction WebSocket closed');
           _isConnected = false;
           if (!_isManuallyClosed && !_preventReconnect) {
             _scheduleReconnect(taskId);
@@ -88,7 +96,7 @@ class WebSocketService {
 
       _startPing();
     } catch (e) {
-      print('❌ Connection failed: $e');
+      logger.e('❌ Connection failed: $e');
       if (!_isManuallyClosed && !_preventReconnect) {
         _scheduleReconnect(taskId);
       }
@@ -108,9 +116,9 @@ class WebSocketService {
       if (_isConnected && _channel != null) {
         try {
           _channel!.sink.add('ping');
-          print('💓 Ping sent');
+          logger.d('💓 Prediction WebSocket ping sent');
         } catch (e) {
-          print('❌ Failed to send ping: $e');
+          logger.e('❌ Failed to send ping: $e');
           _isConnected = false;
         }
       }
@@ -121,14 +129,14 @@ class WebSocketService {
     if (_isManuallyClosed || _preventReconnect) return;
 
     if (_reconnectAttempts >= maxReconnectAttempts) {
-      print('❌ Max reconnect attempts reached. Giving up.');
+      logger.w('❌ Max reconnect attempts reached. Giving up.');
       _controller?.close();
       return;
     }
 
     _reconnectAttempts++;
     final delay = Duration(seconds: _reconnectAttempts * 2);
-    print('🔄 Reconnecting in ${delay.inSeconds}s (attempt $_reconnectAttempts/$maxReconnectAttempts)...');
+    logger.d('🔄 Reconnecting in ${delay.inSeconds}s (attempt $_reconnectAttempts/$maxReconnectAttempts)...');
 
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(delay, () {
