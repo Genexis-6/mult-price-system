@@ -45,7 +45,7 @@ services:
     image: mult-price-base:latest
     volumes:
       - venv_cache:/opt/venv
-      - model_cache:/tmp/model_cache  # Changed to writable location
+      - model_cache:/tmp/model_cache  
     networks:
       - mult-price-network
 
@@ -67,14 +67,12 @@ services:
       - REDIS_PORT=6379
       - HOST=0.0.0.0
       - PORT=8000
-      # DON'T override these - let .env values be used
-      # - TRANSFORMERS_CACHE and HF_HOME will come from .env
       - PYTHONUNBUFFERED=1
     volumes:
       - ./server:/app
       - venv_cache:/opt/venv
       - ./logs:/app/logs
-      - model_cache:/tmp/model_cache  # Changed to writable location
+      - model_cache:/tmp/model_cache 
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,14 +98,12 @@ services:
       - REDIS_BACKEND_URL=redis://redis:6379/1
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      # DON'T override these - let .env values be used
-      # - TRANSFORMERS_CACHE and HF_HOME will come from .env
       - PYTHONUNBUFFERED=1
     volumes:
       - ./server:/app
       - venv_cache:/opt/venv
       - ./logs:/app/logs
-      - model_cache:/tmp/model_cache  # Changed to writable location
+      - model_cache:/tmp/model_cache
     depends_on:
       postgres:
         condition: service_healthy

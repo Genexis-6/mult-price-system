@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean
 
 # Copy virtual environment from base image
-COPY --from=base-setup /opt/venv /opt/venv
+COPY --from=mult-price-base:latest /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Don't set these - they'll come from .env or docker-compose

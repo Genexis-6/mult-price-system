@@ -5,7 +5,7 @@ class AppWsUrlConfig {
   
   static String get baseUrl {
     if (isProduction) {
-      return 'https://harmful-capillary-ranch.ngrok-free.dev';
+      return 'https://denture-shorthand-hardcover.ngrok-free.dev';
     } else {
       return 'http://10.0.2.2:8000';
     }

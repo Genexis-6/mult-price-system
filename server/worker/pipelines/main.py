@@ -104,7 +104,7 @@ async def run_full_pipeline(
     logger.info(f"=== Pipeline START | query='{query}' | mode={mode} ===")
 
     try:
-        # ── Layer 1: ETL ──────────────────────────────────────────────────────────
+        # # ── Layer 1: ETL ──────────────────────────────────────────────────────────
         await publish_redis_job(redis_client, RedisPublishSchemas(
             task_id=task_id,
             progress=5,

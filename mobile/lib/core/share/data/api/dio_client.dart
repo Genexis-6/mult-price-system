@@ -5,7 +5,7 @@ import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 final dioClientProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: "https://harmful-capillary-ranch.ngrok-free.dev/v1",
+      baseUrl: "https://denture-shorthand-hardcover.ngrok-free.dev/v1",
       connectTimeout: Duration(seconds: 30),
       receiveTimeout: Duration(seconds: 30),
       headers: {"content-type": "application/json"},
